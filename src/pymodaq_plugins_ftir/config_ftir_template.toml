@@ -1,29 +1,10 @@
 #this is the configuration file of PyMoDAQ
-[macro]
 
-
-[micro]
-
-    [micro.current]
-    device_ao = 'cDAQ1Mod4'
+[diodes]
     device_ai = 'cDAQ1Mod1'
-    channel_ao = 'ao0'
-    channel_ai = 'ai0'
-    resistor = 1  # resistor value in ohm to read current from voltage measurement
+    ai_monitor_plus = 'ai1'
+    ai_monitor_minus = 'ai2'
+    ai_diff = 'ai3'
 
-    [micro.led]
-    device_di = 'cDAQ1Mod5'
-    port_di = 'port0'
-    line_di = 'line0'
-    device_ao = 'cDAQ1Mod3'
-    channels_ao = ['ao2', 'ao3', 'ao1', 'ao0']
-    changedetectionevent_device = 'cDAQ1'
-
-    [micro.actuation]
-    absolute_current_values = [0.0, 0.2, -0.2]
-    relative_value = 0.01
-
-    [micro.camera]
-    exposure_ms = 100
-    binning_x = 2
-    binning_y = 2
+[delay]
+    id = 722998302

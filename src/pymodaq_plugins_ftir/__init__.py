@@ -9,5 +9,5 @@ with open(str(Path(__file__).parent.joinpath('VERSION')), 'r') as fvers:
 
 # make sure the config is correctly set if not existing
 here = Path(__file__).parent
-config = config_mod.load_config(config_path=config_mod.get_set_local_dir().joinpath('config_moke.toml'),
-                                config_base_path=here.joinpath('config_moke_template.toml'))
+config = config_mod.load_config(config_path=config_mod.get_set_local_dir().joinpath('config_fftir.toml'),
+                                config_base_path=here.joinpath('config_ftir_template.toml'))

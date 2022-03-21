@@ -30,7 +30,7 @@ def main():
     win.setWindowTitle('PyMoDAQ Dashboard')
 
     dashboard = DashBoard(area)
-    file = Path(get_set_preset_path()).joinpath("ftir.xml")
+    file = Path(get_set_preset_path()).joinpath("FTIR.xml")
 
     if file.exists():
         dashboard.set_preset_mode(file)

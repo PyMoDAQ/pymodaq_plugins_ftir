@@ -5,28 +5,31 @@ from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlug
 from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters, main
 
 from pymodaq_plugins_daqmx.hardware.national_instruments.daqmx import DAQmx, ClockSettings, AIChannel
-from pymodaq_plugins_ftir.utils.configuration import Config
+from pymodaq_plugins_ftir.utils.configuration import ConfigFTIR as Config
 
 logger = set_logger(get_module_name(__file__))
 
 config = Config()
 
-device_ai = config('micro', 'current', 'device_ai')
-channel_ai = config('micro', 'current', 'channel_ai')
-resistor = config('micro', 'current', 'resistor')
-class DAQ_0DViewer_FTIRDiodes(DAQ_Viewer_base):
+device_ai = config('diodes', 'device_ai')
+ai_monitor_plus = config('diodes', 'ai_monitor_plus')
+ai_monitor_minus = config('diodes', 'ai_monitor_minus')
+ai_diff = config('diodes', 'ai_diff')
+
+
+class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
     """
     """
     params = comon_parameters+[
         {'title': 'Display type:', 'name': 'display', 'type': 'list', 'limits': ['0D', '1D']},
         {'title': 'Frequency Acq.:', 'name': 'frequency', 'type': 'int', 'value': 1000, 'min': 1},
         {'title': 'Nsamples:', 'name': 'Nsamples', 'type': 'int', 'value': 100, 'default': 100, 'min': 1},
-        {'title': 'AI0:', 'name': 'ai_channel0', 'type': 'list',
-         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'),
-         'value': DAQmx.get_NIDAQ_channels(source_type='Analog_Input')[2]},
-        {'title': 'AI1:', 'name': 'ai_channel1', 'type': 'list',
-         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'),
-         'value': DAQmx.get_NIDAQ_channels(source_type='Analog_Input')[3]},
+        {'title': 'Monitor +:', 'name': 'ai_monitor_plus', 'type': 'list',
+         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_monitor_plus}'},
+        {'title': 'Monitor -:', 'name': 'ai_monitor_minus', 'type': 'list',
+         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_monitor_minus}'},
+        {'title': 'Diff:', 'name': 'ai_diff', 'type': 'list',
+         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_diff}'},
         ]
     hardware_averaging = True
     live_mode_available = True
@@ -40,6 +43,7 @@ class DAQ_0DViewer_FTIRDiodes(DAQ_Viewer_base):
         self.live = False
         self.Naverage = 1
         self.ind_average = 0
+        self.clock_settings_ai = None
 
     def commit_settings(self, param):
         """
@@ -90,10 +94,13 @@ class DAQ_0DViewer_FTIRDiodes(DAQ_Viewer_base):
 
     def update_tasks(self):
 
-        self.channels_ai = [AIChannel(name=self.settings.child('ai_channel0').value(),
+        self.channels_ai = [AIChannel(name=self.settings.child('ai_monitor_plus').value(),
                                       source='Analog_Input', analog_type='Voltage',
                                       value_min=-10., value_max=10., termination='Diff', ),
-                            AIChannel(name=self.settings.child('ai_channel1').value(),
+                            AIChannel(name=self.settings.child('ai_monitor_minus').value(),
+                                      source='Analog_Input', analog_type='Voltage',
+                                      value_min=-10., value_max=10., termination='Diff', ),
+                            AIChannel(name=self.settings.child('ai_diff').value(),
                                       source='Analog_Input', analog_type='Voltage',
                                       value_min=-10., value_max=10., termination='Diff', ),
                             ]
@@ -178,15 +185,22 @@ class DAQ_0DViewer_FTIRDiodes(DAQ_Viewer_base):
             data_export = [np.squeeze(data[ind]) for ind in range(len(self.channels_ai))]
 
         if self.settings.child('display').value() == '0D':
-            datatosend = [np.array([data_export[0]]), np.array([data_export[1]])]
+            datatosend1 = [np.array([data_export[ind]]) for ind in range(len(self.channels_ai)-1)]
+            datatosend2 = [np.array([data_export[2]])]
         else:
-            datatosend = [d for d in data_export]
+            datatosend1 = [d for d in data_export[0:2]]
+            datatosend2 = [data_export[2]]
 
         # print(f'data len is {len(data_export)} and shape is {data_export[0].shape}')
         self.data_grabed_signal.emit([DataFromPlugins(
-            name='NI AI',
-            data=datatosend,
-            dim=f'Data{self.settings.child("display").value()}', labels=channels_name)])
+            name='Monitor Diodes',
+            data=datatosend1,
+            dim=f'Data{self.settings.child("display").value()}', labels=channels_name[0:2]),
+            DataFromPlugins(
+                name='Diff Diodes',
+                data=datatosend2,
+                dim=f'Data{self.settings.child("display").value()}', labels=channels_name[2])]
+        )
 
     def stop(self):
         try:
