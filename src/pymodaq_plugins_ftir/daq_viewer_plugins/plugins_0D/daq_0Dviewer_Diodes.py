@@ -16,21 +16,24 @@ ai_monitor_plus = config('diodes', 'ai_monitor_plus')
 ai_monitor_minus = config('diodes', 'ai_monitor_minus')
 ai_diff = config('diodes', 'ai_diff')
 
+DEBUG = False
+
 
 class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
     """
     """
     params = comon_parameters+[
-        {'title': 'Display type:', 'name': 'display', 'type': 'list', 'limits': ['0D', '1D']},
-        {'title': 'Frequency Acq.:', 'name': 'frequency', 'type': 'int', 'value': 1000, 'min': 1},
-        {'title': 'Nsamples:', 'name': 'Nsamples', 'type': 'int', 'value': 100, 'default': 100, 'min': 1},
-        {'title': 'Monitor +:', 'name': 'ai_monitor_plus', 'type': 'list',
-         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_monitor_plus}'},
-        {'title': 'Monitor -:', 'name': 'ai_monitor_minus', 'type': 'list',
-         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_monitor_minus}'},
-        {'title': 'Diff:', 'name': 'ai_diff', 'type': 'list',
-         'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_diff}'},
-        ]
+        {"title": "Diodes:", "name": "diodes", "type": "group", "children": [
+            {'title': 'Acquisition:', 'name': 'acquisition', 'type': 'list', 'limits': ['Monitor', 'Diff', 'All']},
+            {'title': 'Frequency Acq.:', 'name': 'frequency', 'type': 'int', 'value': 1000, 'min': 1},
+            {'title': 'Nsamples:', 'name': 'Nsamples', 'type': 'int', 'value': 100, 'default': 100, 'min': 1},
+            {'title': 'Monitor +:', 'name': 'ai_monitor_plus', 'type': 'list',
+             'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_monitor_plus}'},
+            {'title': 'Monitor -:', 'name': 'ai_monitor_minus', 'type': 'list',
+             'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_monitor_minus}'},
+            {'title': 'Diff:', 'name': 'ai_diff', 'type': 'list',
+             'limits': DAQmx.get_NIDAQ_channels(source_type='Analog_Input'), 'value': f'{device_ai}/{ai_diff}'},
+            ]}]
     hardware_averaging = True
     live_mode_available = True
 
@@ -68,22 +71,21 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
 
         try:
             self.status.update(edict(initialized=False,info="", x_axis=None,y_axis=None,controller=None))
-            if self.settings.child(('controller_status')).value() == "Slave":
+            if self.settings.child('controller_status').value() == "Slave":
                 if controller is None:
                     raise Exception('no controller has been defined externally while this detector is a slave one')
                 else:
-                    self.controller = controller
+                    self.controller_diodes = controller
             else:
 
-                self.controller = dict(ai=DAQmx())
+                self.controller_diodes = dict(ai=DAQmx())
                 #####################################
 
             self.update_tasks()
 
-
             self.status.info = "Current measurement ready"
             self.status.initialized = True
-            self.status.controller = self.controller
+            self.status.controller = self.controller_diodes
             return self.status
 
         except Exception as e:
@@ -93,24 +95,35 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
             return self.status
 
     def update_tasks(self):
+        if self.settings['diodes', 'acquisition'] == 'Monitor':
+            self.channels_ai = [AIChannel(name=self.settings.child('diodes', 'ai_monitor_plus').value(),
+                                          source='Analog_Input', analog_type='Voltage',
+                                          value_min=-10., value_max=10., termination='Diff', ),
+                                AIChannel(name=self.settings.child('diodes', 'ai_monitor_minus').value(),
+                                          source='Analog_Input', analog_type='Voltage',
+                                          value_min=-10., value_max=10., termination='Diff', )]
+        elif self.settings['diodes', 'acquisition'] == 'Diff':
+            self.channels_ai = [AIChannel(name=self.settings.child('diodes', 'ai_diff').value(),
+                                          source='Analog_Input', analog_type='Voltage',
+                                          value_min=-10., value_max=10., termination='Diff', ),
+                                ]
+        else:
+            self.channels_ai = [AIChannel(name=self.settings.child('diodes', 'ai_monitor_plus').value(),
+                                          source='Analog_Input', analog_type='Voltage',
+                                          value_min=-10., value_max=10., termination='Diff', ),
+                                AIChannel(name=self.settings.child('diodes', 'ai_monitor_minus').value(),
+                                          source='Analog_Input', analog_type='Voltage',
+                                          value_min=-10., value_max=10., termination='Diff', ),
+                                AIChannel(name=self.settings.child('diodes', 'ai_diff').value(),
+                                          source='Analog_Input', analog_type='Voltage',
+                                          value_min=-10., value_max=10., termination='Diff', ),
+                                ]
 
-        self.channels_ai = [AIChannel(name=self.settings.child('ai_monitor_plus').value(),
-                                      source='Analog_Input', analog_type='Voltage',
-                                      value_min=-10., value_max=10., termination='Diff', ),
-                            AIChannel(name=self.settings.child('ai_monitor_minus').value(),
-                                      source='Analog_Input', analog_type='Voltage',
-                                      value_min=-10., value_max=10., termination='Diff', ),
-                            AIChannel(name=self.settings.child('ai_diff').value(),
-                                      source='Analog_Input', analog_type='Voltage',
-                                      value_min=-10., value_max=10., termination='Diff', ),
-                            ]
+        self.clock_settings_ai = ClockSettings(frequency=self.settings.child('diodes', 'frequency').value(),
+                                               Nsamples=self.settings.child('diodes', 'Nsamples').value(),
+                                               repetition=self.live)
 
-        self.clock_settings_ai = ClockSettings(frequency=self.settings.child('frequency').value(),
-                                               Nsamples=self.settings.child('Nsamples').value(), repetition=self.live)
-
-        self.controller['ai'].update_task(self.channels_ai, self.clock_settings_ai)
-
-
+        self.controller_diodes['ai'].update_task(self.channels_ai, self.clock_settings_ai)
 
     def close(self):
         """
@@ -146,17 +159,19 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
         self.ind_average = 0
         self.data_tot = np.zeros((len(self.channels_ai), self.clock_settings_ai.Nsamples))
 
-        while not self.controller['ai'].isTaskDone():
+        while not self.controller_diodes['ai'].isTaskDone():
             self.stop()
-        if self.controller['ai'].c_callback is None:
-            self.controller['ai'].register_callback(self.read_data, 'Nsamples', self.clock_settings_ai.Nsamples)
-        self.controller['ai'].task.StartTask()
-        #QThread.msleep(500)
-        #self.read_data(None, 0)
+        if not DEBUG:
+            if self.controller_diodes['ai'].c_callback is None:
+                self.controller_diodes['ai'].register_callback(self.read_data, 'Nsamples', self.clock_settings_ai.Nsamples)
+        self.controller_diodes['ai'].task.StartTask()
+        if DEBUG:
+            QThread.msleep(500)
+            self.read_data(None, 0)
 
     def read_data(self, taskhandle, status, samples=0, callbackdata=None):
         #print(f'going to read {self.clock_settings_ai.Nsamples} samples, callbakc {samples}')
-        data = self.controller['ai'].readAnalog(len(self.channels_ai), self.clock_settings_ai)
+        data = self.controller_diodes['ai'].readAnalog(len(self.channels_ai), self.clock_settings_ai)
         if not self.live:
             self.stop()
         self.ind_average += 1
@@ -171,40 +186,34 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
         return 0  #mandatory for the PyDAQmx callback
 
     def emit_data(self, data):
-        channels_name = [ch.name for ch in self.channels_ai]
-
-        if self.settings.child('display').value() == '0D':
-            data = np.mean(data, 1)
-
-        #data = np.squeeze(data)
-        # print(f'shape is {data.shape}')
-        # print(data)
+        data = np.mean(data, 1)
         if len(self.channels_ai) == 1 and data.size == 1:
             data_export = [np.array([data[0]])]
         else:
-            data_export = [np.squeeze(data[ind]) for ind in range(len(self.channels_ai))]
+            data_export = [np.array([data[ind]]) for ind in range(len(self.channels_ai))]
+        self.send_data(data_export)
 
-        if self.settings.child('display').value() == '0D':
-            datatosend1 = [np.array([data_export[ind]]) for ind in range(len(self.channels_ai)-1)]
-            datatosend2 = [np.array([data_export[2]])]
+    def send_data(self, datatosend, data_type='0D'):
+        channels_name = [ch.name for ch in self.channels_ai]
+        if self.settings['diodes', 'acquisition'] != 'All':
+            self.data_grabed_signal.emit([DataFromPlugins(
+                name='Monitor Diodes',
+                data=datatosend,
+                dim=f'Data{data_type}', labels=channels_name)])
         else:
-            datatosend1 = [d for d in data_export[0:2]]
-            datatosend2 = [data_export[2]]
-
-        # print(f'data len is {len(data_export)} and shape is {data_export[0].shape}')
-        self.data_grabed_signal.emit([DataFromPlugins(
-            name='Monitor Diodes',
-            data=datatosend1,
-            dim=f'Data{self.settings.child("display").value()}', labels=channels_name[0:2]),
-            DataFromPlugins(
-                name='Diff Diodes',
-                data=datatosend2,
-                dim=f'Data{self.settings.child("display").value()}', labels=channels_name[2])]
-        )
+            self.data_grabed_signal.emit([DataFromPlugins(
+                name='Monitor Diodes',
+                data=datatosend[0:2],
+                dim=f'Data{data_type}', labels=channels_name[0:2]),
+                DataFromPlugins(
+                    name='Amplified difference',
+                    data=[datatosend[2]],
+                    dim=f'Data{data_type}', labels=[channels_name[2]])
+            ])
 
     def stop(self):
         try:
-            self.controller['ai'].task.StopTask()
+            self.controller_diodes['ai'].task.StopTask()
         except:
             pass
         ##############################
