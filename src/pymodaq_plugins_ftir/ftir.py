@@ -1,13 +1,15 @@
 import sys
 from qtpy import QtWidgets, QtGui, QtCore
 from pathlib import Path
+from collections import OrderedDict
+import numpy as np
 
 from pymodaq.daq_utils.gui_utils.custom_app import CustomApp
 from pymodaq.daq_utils.gui_utils.dock import Dock
 from pymodaq.daq_utils.plotting.data_viewers.viewer1D import Viewer1D
 import pymodaq.daq_utils.gui_utils.layout
 from pymodaq.daq_utils import config as config_mod
-from pymodaq.daq_utils.daq_utils import ThreadCommand, set_logger, get_module_name
+from pymodaq.daq_utils.daq_utils import ThreadCommand, set_logger, get_module_name, Axis
 from pymodaq.daq_utils.messenger import messagebox
 from pymodaq_plugins_ftir.utils.configuration import Config as ConfigFTIR
 
@@ -19,44 +21,71 @@ class FTIR(CustomApp):
     def __init__(self, dockarea, dashboard):
         super().__init__(dockarea, dashboard)
 
-        self.detector = self.modules_manager.get_mod_from_name('Diodes', mod='det')
-        self.delay_actuator = self.modules_manager.get_mod_from_name('Delay', mod='act')
+        self.detector = self.modules_manager.get_mod_from_name('Autoco', mod='det')
         self.scan_window = None
 
         self.setup_ui()
-        self.setup_scan()
-
-    def setup_scan(self):
-        if self.dashboard.scan_module is None:
-            self.scan_window = QtWidgets.QMainWindow()
-            self.dashboard.load_scan_module(win=self.scan_window)
-            self.get_action('show_scan').setEnabled(True)
-            self.get_action('do_scan').setEnabled(True)
-            self.show_scanner(self.is_action_checked('show_scan'))
-            self.connect_action('do_scan', self.dashboard.scan_module.do_scan)
-            self.connect_action('do_scan', self.show_hide_live_viewer)
-            self.dashboard.scan_module.live_data_1D_signal.connect(self.update_live_viewer)
-
-        self.dashboard.scan_module.scanner.set_scan_type_and_subtypes('Scan1D', 'Linear')
-        self.dashboard.scan_module.modules_manager.selected_detectors_name = ['Diodes']
-        self.dashboard.scan_module.modules_manager.selected_actuators_name = ['Delay']
-        QtWidgets.QApplication.processEvents()
 
     def update_live_viewer(self, data_all):
-        self.scan_live_viewer.show_data(data_all[1], x_axis=data_all[0])
+        self.raw_viewer.show_data(data_all[1], x_axis=data_all[0])
 
-    def show_hide_live_viewer(self, show=True):
-        self.scan_live_dock.setVisible(show)
 
     def setup_docks(self):
         self.show_dashboard(False)
         QtWidgets.QApplication.processEvents()
-        self.scan_live_dock = Dock('Live Scan Plot')
-        widget = QtWidgets.QWidget()
-        self.scan_live_viewer = Viewer1D(widget)
-        self.scan_live_dock.addWidget(widget)
-        self.dockarea.addDock(self.scan_live_dock, 'bottom', self.detector.viewer_docks[0])
-        self.scan_live_dock.setVisible(False)
+        self.raw_dock = Dock('Raw Data')
+        self.corrected_dock = Dock('Corrected Data')
+        self.filtered_dock = Dock('Filtered Data')
+        self.spectrum_dock = Dock('Spectrum Data')
+
+        raw_widget = QtWidgets.QWidget()
+        self.raw_viewer = Viewer1D(raw_widget)
+        self.raw_dock.addWidget(raw_widget)
+        self.dockarea.addDock(self.raw_dock)
+
+        corrected_widget = QtWidgets.QWidget()
+        self.corrected_viewer = Viewer1D(corrected_widget)
+        self.corrected_dock.addWidget(corrected_widget)
+        self.dockarea.addDock(self.corrected_dock, 'right', self.raw_dock)
+
+        filtered_widget = QtWidgets.QWidget()
+        self.filtered_viewer = Viewer1D(filtered_widget)
+        self.filtered_dock.addWidget(filtered_widget)
+        self.dockarea.addDock(self.filtered_dock, 'right', self.corrected_dock)
+
+        spectrum_widget = QtWidgets.QWidget()
+        self.spectrum_viewer = Viewer1D(spectrum_widget)
+        self.spectrum_dock.addWidget(spectrum_widget)
+        self.dockarea.addDock(self.spectrum_dock, 'bottom')
+
+    @QtCore.Slot(OrderedDict)
+    def show_data(self, data):
+        """
+        do stuff with data from the detector if its grab_done_signal has been connected
+        Parameters
+        ----------
+        data: (OrderedDict) #OrderedDict(name=self.title,x_axis=None,y_axis=None,z_axis=None,data0D=None,data1D=None,data2D=None)
+        """
+        y_data_raw = data['data1D']['Autoco_AutocoTrace_CH000']['data']
+        x_data_raw = data['data1D']['Autoco_AutocoTrace_CH000']['x_axis']
+
+        self.raw_viewer.show_data([y_data_raw.copy()], x_axis=x_data_raw)
+
+        dx = 256  # range from a selection area
+
+        y_index_data_max = np.argmax(np.abs(y_data_raw))
+        x_data_selected = x_data_raw['data'][y_index_data_max - int(dx / 2): y_index_data_max + int(dx / 2)]
+        x_data_selected = x_data_selected - np.mean(x_data_selected)
+        y_data_selected = y_data_raw[y_index_data_max - int(dx / 2): y_index_data_max + int(dx / 2)]
+        y_data_selected = y_data_selected - np.mean(y_data_selected)
+        y_data_selected = y_data_selected / np.max(np.abs(y_data_selected))
+
+        self.corrected_viewer.show_data([y_data_selected.copy()], x_axis=Axis(data=x_data_selected,
+                                                                       units=x_data_raw['units'],
+                                                                       label=x_data_raw['label']))
+
+        #spectrum = np.abs(mutils.ift(filter_autoco * y_data_selected))
+
 
     def setup_actions(self):
         self.add_action('quit', 'Quit', 'close2', "Quit program")
@@ -68,14 +97,10 @@ class FTIR(CustomApp):
         self.toolbar.addSeparator()
 
         self.add_action('show_dash', 'Show/hide Dashboard', 'read2', "Show Hide Dashboard", checkable=True)
-        self.add_action('show_scan', 'Show/hide Scanner', 'read2', "Show Hide Scanner Window", checkable=True)
-        self.get_action('show_scan').setEnabled(False)
 
         self.toolbar.addSeparator()
-        self.add_action('snap', 'Snap', 'camera_snap', "Snap from camera", checkable=False)
-        self.add_action('grab', 'Grab', 'camera', "Grab from camera", checkable=True)
-        self.add_action('do_scan', 'Do Scan', 'run2', checkable=True)
-        self.get_action('do_scan').setEnabled(False)
+        self.add_action('snap', 'Snap', 'run', "Snap Autoco", checkable=False)
+        self.add_action('grab', 'Grab', 'run2', "Grab Autoco", checkable=True)
 
     def show_config(self):
         config_tree = config_mod.TreeFromToml(config=config)
@@ -86,11 +111,12 @@ class FTIR(CustomApp):
         self.connect_action('grab', lambda: self.run_detector())
         self.connect_action('snap', lambda: self.run_detector(snap=True))
         self.connect_action('show_dash', self.show_dashboard)
-        self.connect_action('show_scan', self.show_scanner)
         self.connect_action('save_layout', self.save_layout)
         self.connect_action('load_layout', self.load_layout)
 
         self.connect_action('config', self.show_config)
+
+        self.detector.grab_done_signal.connect(self.show_data)
 
     def save_layout(self):
         pymodaq.daq_utils.gui_utils.layout.save_layout_state(self.dockarea)
@@ -140,7 +166,7 @@ def main():
         ftir_window.setCentralWidget(ftir_area)
         ftir = FTIR(ftir_area, dashboard)
         ftir_window.show()
-        ftir_window.setWindowTitle('MicroMOKE')
+        ftir_window.setWindowTitle('FTIR')
         QtWidgets.QApplication.processEvents()
     else:
         messagebox(severity='warning', title=f"Impossible to load the DAQ_Scan Module",
