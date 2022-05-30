@@ -14,7 +14,7 @@ logger = set_logger(get_module_name(__file__))
 config = Config()
 
 
-class DAQ_1DViewer_FTIR(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
+class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
     """
     """
 
