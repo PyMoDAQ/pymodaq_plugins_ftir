@@ -18,13 +18,14 @@ class DAQ_1DViewer_AutocoMock(DAQ_Viewer_base):
         {'title': 'Autoco:', 'name': 'autoco', 'type': 'group', 'children': [
             {'title': 'Amp:', 'name': 'amp', 'type': 'int', 'value': 1, 'default': 1},
             {'title': 'x0:', 'name': 'x0', 'type': 'float', 'value': 0, 'default': 0},
-            {'title': 'dx:', 'name': 'dx', 'type': 'float', 'value': 10., 'default': 20},
+            {'title': 'dx:', 'name': 'dx', 'type': 'float', 'value': 5., 'default': 5},
             {'title': 'n:', 'name': 'n', 'type': 'int', 'value': 1, 'default': 1, 'min': 1},
-            {'title': 'noise:', 'name': 'amp_noise', 'type': 'float', 'value': 0.01, 'default': 0.01, 'min': 0},
-            {'title': 'wavelength', 'name': 'wavelength', 'type': 'float', 'value': 595.}
+            {'title': 'Noise:', 'name': 'amp_noise', 'type': 'float', 'value': 0.01, 'default': 0.01, 'min': 0},
+            {'title': 'Wavelength', 'name': 'wavelength', 'type': 'float', 'value': 595.},
+            {'title': 'Chirp', 'name': 'chirp', 'type': 'float', 'value': 0.1}
         ]},
         {'title': 'xaxis:', 'name': 'x_axis', 'type': 'group', 'children': [
-            {'title': 'Npts:', 'name': 'Npts', 'type': 'int', 'value': 1024, },
+            {'title': 'Npts:', 'name': 'Npts', 'type': 'int', 'value': 4096, },
             {'title': 'x0:', 'name': 'x0', 'type': 'float', 'value': 0, },
             {'title': 'dx:', 'name': 'dx', 'type': 'float', 'value': 0.1, },
         ]},
@@ -32,8 +33,7 @@ class DAQ_1DViewer_AutocoMock(DAQ_Viewer_base):
     ]
     hardware_averaging = False
 
-    def __init__(self, parent=None,
-                 params_state=None):  # init_params is a list of tuple where each tuple contains info on a 1D channel (Ntps,amplitude, width, position and noise)
+    def __init__(self, parent=None, params_state=None):
         super().__init__(parent, params_state)
 
         self.x_axis = Axis(label='delay', units='fs')
@@ -80,7 +80,8 @@ class DAQ_1DViewer_AutocoMock(DAQ_Viewer_base):
                                                             self.settings['autoco', 'x0'],
                                                             self.settings['autoco', 'dx'],
                                                             self.settings['autoco', 'n'])
-        data_tmp = data_tmp * np.cos(self.x_axis['data'] * l2w(self.settings['autoco', 'wavelength']))
+        data_tmp = data_tmp * np.cos(self.x_axis['data'] * l2w(self.settings['autoco', 'wavelength']) +
+                                     self.settings['autoco', 'chirp'] * self.x_axis['data']**2)
         data_tmp += self.settings['autoco', 'amp_noise'] * np.random.rand((len(self.x_axis['data'])))
         data_tmp = np.roll(data_tmp, np.random.randint(-self.settings['rolling'],
                                                        +self.settings['rolling']+1))
