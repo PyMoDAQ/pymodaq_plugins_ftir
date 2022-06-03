@@ -15,6 +15,7 @@ from pymodaq.daq_utils import math_utils as mutils
 from pymodaq.daq_utils.messenger import messagebox
 from pymodaq_plugins_ftir.utils.configuration import Config as ConfigFTIR
 from pymodaq.daq_utils.h5modules import browse_data, H5BrowserUtil
+from scipy.constants import speed_of_light
 
 config = ConfigFTIR()
 logger = utils.set_logger(utils.get_module_name(__file__))
@@ -22,7 +23,14 @@ logger = utils.set_logger(utils.get_module_name(__file__))
 
 class FTIR(CustomApp):
 
-    params = []
+    params = [
+        {'title': 'Calibration', 'name': 'calibration', 'type': 'group', 'children': [
+            {'title': 'Wavelength (nm)', 'name': 'wavelength', 'type': 'float', 'value': 632.},
+            {'title': 'Npts/Period', 'name': 'period', 'type': 'float', 'value': 23.},
+            {'title': 'Computed Index/Delay scaling (fs)', 'name': 'scaling_computed', 'type': 'float',
+             'readonly': True, 'value': 0.09186},
+            {'title': 'Index/Delay scaling (fs)', 'name': 'scaling', 'type': 'float', 'value': 0.09186},
+        ]}]
 
     def __init__(self, dockarea, dashboard):
         super().__init__(dockarea, dashboard)
@@ -31,6 +39,8 @@ class FTIR(CustomApp):
         self.scan_window = None
 
         self.setup_ui()
+
+        self._data = None
 
         self.y_data_raw = None
         self.x_data_raw = None
@@ -43,6 +53,17 @@ class FTIR(CustomApp):
 
         self._raw_data_init = False
         self._corrected_data_init = False
+
+    def value_changed(self, param):
+
+        if param.name() == 'wavelength' or param.name() == 'period':
+            self.settings.child('calibration',
+                                'scaling_computed').setValue(
+                self.settings['calibration', 'wavelength']/(speed_of_light*1e-9)/self.settings['calibration', 'period'])
+
+        if param.name() == 'scaling':
+            if self._data is not None:
+                self.show_raw_data(self._data)
 
     def setup_docks(self):
         self.show_dashboard(False)
@@ -96,11 +117,17 @@ class FTIR(CustomApp):
         ----------
         data: (OrderedDict) #OrderedDict(name=self.title,x_axis=None,y_axis=None,z_axis=None,data0D=None,data1D=None,data2D=None)
         """
+        self._data = data
         self.y_data_raw = data['data1D']['Autoco_AutocoTrace_CH000']['data']
         self.x_data_raw = data['data1D']['Autoco_AutocoTrace_CH000']['x_axis']
 
         self.raw_viewer.show_data([self.y_data_raw.copy()], x_axis=self.x_data_raw,
                                   labels=['Raw data'])
+
+        self.x_data_raw *= self.settings['calibration', 'scaling']
+        self.x_data_raw['units'] = 'fs'
+        self.x_data_raw['label'] = 'Delay'
+
         if not self._raw_data_init:
             x1 = self.x_data_raw['data'][0] + (self.x_data_raw['data'][-1] - self.x_data_raw['data'][0]) / 4
             x2 = self.x_data_raw['data'][0] + 3 * (self.x_data_raw['data'][-1] - self.x_data_raw['data'][0]) / 4
@@ -110,20 +137,22 @@ class FTIR(CustomApp):
         self.update_corrected_data()
 
     def update_corrected_data(self):
-        pos = self.raw_viewer.roi_manager.get_roi_from_index(0).getRegion()
+        pos = [val * self.settings['calibration', 'scaling'] for val in
+               self.raw_viewer.roi_manager.get_roi_from_index(0).getRegion()]
 
         index = mutils.find_index(self.x_data_raw['data'], pos)
         data_for_max = self.y_data_raw[index[0][0]:index[1][0]]
-        y_index_data_max = np.argmax(np.abs(data_for_max)) + index[0][0]
-
-        dx = index[1][0] - index[0][0]
-
-        x_data_selected = self.x_data_raw['data'][y_index_data_max-int(dx/2):y_index_data_max+int(dx/2)]
-        y_data_selected = self.y_data_raw[y_index_data_max-int(dx/2):y_index_data_max+int(dx/2)]
-
-        self._x_data = x_data_selected - np.mean(x_data_selected)
-        y_data_selected = y_data_selected - np.mean(y_data_selected)
         try:
+            y_index_data_max = np.argmax(np.abs(data_for_max)) + index[0][0]
+
+            dx = index[1][0] - index[0][0]
+
+            x_data_selected = self.x_data_raw['data'][y_index_data_max-int(dx/2):y_index_data_max+int(dx/2)]
+            y_data_selected = self.y_data_raw[y_index_data_max-int(dx/2):y_index_data_max+int(dx/2)]
+
+            self._x_data = x_data_selected - np.mean(x_data_selected)
+            y_data_selected = y_data_selected - np.mean(y_data_selected)
+
             self._y_data = y_data_selected / np.max(np.abs(y_data_selected))
 
             self.corrected_viewer.show_data([self._y_data], x_axis=utils.Axis(data=self._x_data,
@@ -235,7 +264,7 @@ class FTIR(CustomApp):
         data, fname, node_path = browse_data(ret_all=True)
         data_dict = OrderedDict(data1D=OrderedDict(Autoco_AutocoTrace_CH000=OrderedDict(data=data[0, :])))
         data_dict['data1D']['Autoco_AutocoTrace_CH000']['x_axis'] = \
-            utils.Axis(data=mutils.linspace_step(0, len(data[0, :]), 1),
+            utils.Axis(data=mutils.linspace_step(0, len(data[0, :])-1, 1),
                        label='time steps')
 
         self.show_raw_data(data_dict)
