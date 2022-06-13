@@ -81,6 +81,10 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
                 self.controller_diodes = dict(ai=DAQmx())
                 #####################################
 
+                self.settings.child('diodes', 'ai_monitor_plus').setValue(f'{device_ai}/{ai_monitor_plus}')
+                self.settings.child('diodes', 'ai_monitor_minus').setValue(f'{device_ai}/{ai_monitor_minus}')
+                self.settings.child('diodes', 'ai_diff').setValue(f'{device_ai}/{ai_diff}')
+
             self.update_tasks()
 
             self.status.info = "Current measurement ready"

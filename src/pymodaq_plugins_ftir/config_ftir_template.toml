@@ -5,6 +5,17 @@
     ai_monitor_plus = 'ai1'
     ai_monitor_minus = 'ai2'
     ai_diff = 'ai3'
+    frequency = 25000
+	Nsamples =8000
 
 [delay]
     id = 722998302
+	frequency  = 100
+	amplitude = 31
+	maxfreq = 10000
+    epsilon = 0.3
+
+    [delay.positions]
+        start =-13000.0
+		stop = 10000.0
+        go_to = 0.0

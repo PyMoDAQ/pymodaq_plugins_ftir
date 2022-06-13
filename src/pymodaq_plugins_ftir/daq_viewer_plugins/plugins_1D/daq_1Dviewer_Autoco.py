@@ -24,9 +24,9 @@ class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
     params = [
 
         {"title": "positions:", "name": "positions", "type": "group", "children": [
-            {"title": "Start:", "name": "start", "type": "float", "value": -13000},
-            {"title": "Stop:", "name": "stop", "type": "float", "value": 10000},
-            {"title": "Go to:", "name": "go_to", "type": "float", "value": 0},
+            {"title": "Start:", "name": "start", "type": "float", "value": config('delay', 'positions', 'start')},
+            {"title": "Stop:", "name": "stop", "type": "float", "value": config('delay', 'positions', 'stop')},
+            {"title": "Go to:", "name": "go_to", "type": "float", "value": config('delay', 'positions', 'go_to')},
             {"title": "Move to:", "name": "move_to", "type": "bool_push", "value": False},
             {"title": "Move Home:", "name": "move_home", "type": "bool_push", "value": False},
         ]}] + \
@@ -78,10 +78,13 @@ class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
                 DAQ_0DViewer_Diodes.ini_detector(self)
                 DAQ_Move_SmarAct.ini_stage(self)
 
-                self.settings.child('epsilon').setValue(0.3)
-                self.settings.child('diodes', 'frequency').setValue(25000)
-                self.settings.child('diodes', 'Nsamples').setValue(25000)
-                self.settings.child('maxfreq').setValue(10000)
+                self.settings.child('epsilon').setValue(config('delay', 'epsilon'))
+                self.settings.child('diodes', 'frequency').setValue(config('diodes', 'frequency'))
+                self.settings.child('diodes', 'Nsamples').setValue(config('diodes', 'Nsamples'))
+                self.settings.child('maxfreq').setValue(config('delay', 'maxfreq'))
+                self.settings.child('positions', 'start').setValue(config('delay', 'positions', 'start'))
+                self.settings.child('positions', 'stop').setValue(config('delay', 'positions', 'stop'))
+                self.settings.child('positions', 'go_to').setValue(config('delay', 'positions', 'go_to'))
                 #####################################
 
             self.update_tasks()

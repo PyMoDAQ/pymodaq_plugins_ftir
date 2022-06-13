@@ -13,9 +13,10 @@ from pymodaq.daq_utils.daq_utils import  Axis
 from pymodaq.daq_utils import daq_utils as utils
 from pymodaq.daq_utils import math_utils as mutils
 from pymodaq.daq_utils.messenger import messagebox
-from pymodaq_plugins_ftir.utils.configuration import Config as ConfigFTIR
 from pymodaq.daq_utils.h5modules import browse_data, H5BrowserUtil
 from scipy.constants import speed_of_light
+from pymodaq_plugins_ftir.utils.configuration import ConfigFTIR
+
 
 config = ConfigFTIR()
 logger = utils.set_logger(utils.get_module_name(__file__))
