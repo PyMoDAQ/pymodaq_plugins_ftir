@@ -119,8 +119,8 @@ class FTIR(CustomApp):
         data: (OrderedDict) #OrderedDict(name=self.title,x_axis=None,y_axis=None,z_axis=None,data0D=None,data1D=None,data2D=None)
         """
         self._data = data
-        self.y_data_raw = data['data1D']['Autoco_AutocoTrace_CH000']['data']
-        self.x_data_raw = data['data1D']['Autoco_AutocoTrace_CH000']['x_axis']
+        self.y_data_raw = data['data1D']['Autoco_Amplified difference_CH000']['data']
+        self.x_data_raw = data['data1D']['Autoco_Amplified difference_CH000']['x_axis']
 
         self.raw_viewer.show_data([self.y_data_raw.copy()], x_axis=self.x_data_raw,
                                   labels=['Raw data'])
