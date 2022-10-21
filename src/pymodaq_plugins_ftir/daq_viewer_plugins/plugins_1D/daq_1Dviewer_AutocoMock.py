@@ -1,6 +1,6 @@
 from qtpy.QtCore import QThread
 from qtpy import QtWidgets
-from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters, main
+from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 import numpy as np
 from easydict import EasyDict as edict
 from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo, gauss1D, linspace_step, DataFromPlugins, Axis, l2w

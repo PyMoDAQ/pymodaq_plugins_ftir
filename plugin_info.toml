@@ -3,7 +3,7 @@
 [plugin-info]
 SHORT_PLUGIN_NAME = 'ftir'  
 
-package-url = 'https://github.com/CEMES-CNRS/pymodaq_plugins_ftir' 
+package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_ftir' 
 description = 'Fourier transform infrared spectrometer at CEMES'
 
 author = 'Sebastien Weber'
