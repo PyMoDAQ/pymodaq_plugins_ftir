@@ -1,6 +1,6 @@
 from pathlib import Path
 from pymodaq_plugins_daqmx.hardware.national_instruments import daq_NIDAQmx  # to be called in order to import correct
-from pymodaq.daq_utils import config as config_mod
+from pymodaq.utils import config as config_mod
 
 # parameters
 

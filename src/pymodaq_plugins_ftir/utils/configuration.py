@@ -1,5 +1,5 @@
 from pathlib import Path
-from pymodaq.daq_utils.config import Config, load_config, get_set_local_dir
+from pymodaq.utils.config import Config, load_config, get_set_local_dir
 
 config_base_path = Path(__file__).parent.parent.joinpath('config_ftir_template.toml')
 config_path = get_set_local_dir().joinpath('config_ftir.toml')

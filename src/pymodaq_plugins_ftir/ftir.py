@@ -4,16 +4,16 @@ from pathlib import Path
 from collections import OrderedDict
 import numpy as np
 
-from pymodaq.daq_utils.gui_utils.custom_app import CustomApp
-from pymodaq.daq_utils.gui_utils.dock import Dock
-from pymodaq.daq_utils.plotting.data_viewers.viewer1D import Viewer1D
-import pymodaq.daq_utils.gui_utils.layout
-from pymodaq.daq_utils import config as config_mod
-from pymodaq.daq_utils.daq_utils import  Axis
-from pymodaq.daq_utils import daq_utils as utils
-from pymodaq.daq_utils import math_utils as mutils
-from pymodaq.daq_utils.messenger import messagebox
-from pymodaq.daq_utils.h5modules import browse_data, H5BrowserUtil
+from pymodaq.utils.gui_utils.custom_app import CustomApp
+from pymodaq.utils.gui_utils.dock import Dock
+from pymodaq.utils.plotting.data_viewers.viewer1D import Viewer1D
+import pymodaq.utils.gui_utils.layout
+from pymodaq.utils import config as config_mod
+from pymodaq.utils.daq_utils import  Axis
+from pymodaq.utils import daq_utils as utils
+from pymodaq.utils import math_utils as mutils
+from pymodaq.utils.messenger import messagebox
+from pymodaq.utils.h5modules import browse_data, H5BrowserUtil
 from scipy.constants import speed_of_light
 from pymodaq_plugins_ftir.utils.configuration import ConfigFTIR
 
@@ -252,10 +252,10 @@ class FTIR(CustomApp):
         self.detector.grab_done_signal.connect(self.show_raw_data)
 
     def save_layout(self):
-        pymodaq.daq_utils.gui_utils.layout.save_layout_state(self.dockarea)
+        pymodaq.utils.gui_utils.layout.save_layout_state(self.dockarea)
 
     def load_layout(self):
-        pymodaq.daq_utils.gui_utils.layout.load_layout_state(self.dockarea)
+        pymodaq.utils.gui_utils.layout.load_layout_state(self.dockarea)
 
     def save_data(self):
         #TODO
@@ -290,8 +290,8 @@ class FTIR(CustomApp):
 
 
 def main():
-    from pymodaq.daq_utils.daq_utils import get_set_preset_path
-    from pymodaq.daq_utils.gui_utils import DockArea
+    from pymodaq.utils.daq_utils import get_set_preset_path
+    from pymodaq.utils.gui_utils import DockArea
     from pathlib import Path
     from pymodaq.dashboard import DashBoard
 
