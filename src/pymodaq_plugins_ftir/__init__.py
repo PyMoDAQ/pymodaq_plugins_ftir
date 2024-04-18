@@ -1,13 +1,8 @@
 from pathlib import Path
-from pymodaq_plugins_daqmx.hardware.national_instruments import daq_NIDAQmx  # to be called in order to import correct
-from pymodaq.utils import config as config_mod
+from pymodaq.utils.logger import set_logger  # to be imported by other modules.
 
-# parameters
+from .utils import Config
+config = Config()
 
-with open(str(Path(__file__).parent.joinpath('VERSION')), 'r') as fvers:
+with open(str(Path(__file__).parent.joinpath('resources/VERSION')), 'r') as fvers:
     __version__ = fvers.read().strip()
-
-# make sure the config is correctly set if not existing
-here = Path(__file__).parent
-config = config_mod.load_config(config_path=config_mod.get_set_local_dir().joinpath('config_fftir.toml'),
-                                config_base_path=here.joinpath('config_ftir_template.toml'))
