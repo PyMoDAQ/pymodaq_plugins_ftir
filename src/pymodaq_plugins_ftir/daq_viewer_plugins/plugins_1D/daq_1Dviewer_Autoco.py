@@ -1,14 +1,16 @@
 import numpy as np
 from qtpy.QtCore import QThread, QObject, Slot
 from easydict import EasyDict as edict
-from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlugins, Axis, set_logger, get_module_name
+from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
+from pymodaq.utils.logger import set_logger, get_module_name
+from pymodaq.utils.data import DataFromPlugins,  Axis
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.parameter.utils import iter_children
 from pymodaq_plugins_daqmx.hardware.national_instruments.daqmx import DAQmx, ClockSettings, AIChannel
-from pymodaq_plugins_ftir.utils.configuration import ConfigFTIR as Config
+from pymodaq_plugins_ftir import Config
 from pymodaq_plugins_ftir.daq_viewer_plugins.plugins_0D.daq_0Dviewer_Diodes import DAQ_0DViewer_Diodes, device_ai, \
     ai_monitor_plus, ai_monitor_minus, ai_diff
-from pymodaq_plugins_smaract.daq_move_plugins.daq_move_SmarAct import DAQ_Move_SmarAct
+from pymodaq_plugins_smaract.daq_move_plugins.daq_move_SmarActSCU import DAQ_Move_SmarActSCU as DAQ_Move_SmarAct
 logger = set_logger(get_module_name(__file__))
 
 config = Config()
@@ -44,9 +46,9 @@ class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
         """
         """
         if param.name() == 'move_to':
-            self.move_Abs(self.settings["positions", "go_to"])
+            self.move_abs(self.settings["positions", "go_to"])
         elif param.name() == 'move_home':
-            self.move_Home()
+            self.move_home()
         elif param.name() in iter_children(self.settings.child('diodes'), []):
             self.update_tasks()
         else:
@@ -109,7 +111,7 @@ class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
 
     def grab_data(self, Naverage=1, **kwargs):
         self.Naverage_asked = Naverage
-        self.move_Abs(self.settings['positions', 'start'])
+        self.move_abs(self.settings['positions', 'start'])
 
         while not np.abs(self.check_position() - self.settings['positions', 'start']) < self.settings['epsilon']:
             QThread.msleep(100)
@@ -118,12 +120,12 @@ class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
     @Slot(float)
     def stage_done(self, position: float):
         if np.abs(position - self.settings['positions', 'start']) < self.settings['epsilon']:
-            self.move_Abs(self.settings['positions', 'stop'])
+            self.move_abs(self.settings['positions', 'stop'])
             super().grab_data(self.Naverage_asked)
 
     def emit_data(self, data):
         data_export = [np.array(data[ind]) for ind in range(len(self.channels_ai))]
-        self.move_Abs(self.settings['positions', 'start'])
+        self.move_abs(self.settings['positions', 'start'])
         self.send_data(data_export)
 
     def send_data(self, datatosend):

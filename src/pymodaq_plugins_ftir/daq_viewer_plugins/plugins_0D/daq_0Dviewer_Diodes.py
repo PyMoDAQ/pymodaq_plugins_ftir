@@ -1,11 +1,11 @@
 import numpy as np
 from qtpy.QtCore import QThread
-from easydict import EasyDict as edict
-from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlugins, Axis, set_logger, get_module_name
+from pymodaq.utils.logger import set_logger, get_module_name
+from pymodaq.utils.data import DataFromPlugins,  Axis, DataToExport
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 
 from pymodaq_plugins_daqmx.hardware.national_instruments.daqmx import DAQmx, ClockSettings, AIChannel
-from pymodaq_plugins_ftir.utils.configuration import ConfigFTIR as Config
+from pymodaq_plugins_ftir import Config
 
 logger = set_logger(get_module_name(__file__))
 
@@ -69,34 +69,21 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
             *initialized: (bool): False if initialization failed otherwise True
         """
 
-        try:
-            self.status.update(edict(initialized=False,info="", x_axis=None,y_axis=None,controller=None))
-            if self.settings.child('controller_status').value() == "Slave":
-                if controller is None:
-                    raise Exception('no controller has been defined externally while this detector is a slave one')
-                else:
-                    self.controller_diodes = controller
-            else:
+        if self.is_master:
+            self.controller_diodes = dict(ai=DAQmx())
+            #####################################
 
-                self.controller_diodes = dict(ai=DAQmx())
-                #####################################
+            self.settings.child('diodes', 'ai_monitor_plus').setValue(f'{device_ai}/{ai_monitor_plus}')
+            self.settings.child('diodes', 'ai_monitor_minus').setValue(f'{device_ai}/{ai_monitor_minus}')
+            self.settings.child('diodes', 'ai_diff').setValue(f'{device_ai}/{ai_diff}')
 
-                self.settings.child('diodes', 'ai_monitor_plus').setValue(f'{device_ai}/{ai_monitor_plus}')
-                self.settings.child('diodes', 'ai_monitor_minus').setValue(f'{device_ai}/{ai_monitor_minus}')
-                self.settings.child('diodes', 'ai_diff').setValue(f'{device_ai}/{ai_diff}')
+        else:
+            self.controller_diodes = controller
+        self.update_tasks()
 
-            self.update_tasks()
-
-            self.status.info = "Current measurement ready"
-            self.status.initialized = True
-            self.status.controller = self.controller_diodes
-            return self.status
-
-        except Exception as e:
-            self.emit_status(ThreadCommand('Update_Status', [getLineInfo() + str(e), 'log']))
-            self.status.info = getLineInfo() + str(e)
-            self.status.initialized = False
-            return self.status
+        info = "Current measurement ready"
+        initialized = True
+        return info, initialized
 
     def update_tasks(self):
         if self.settings['diodes', 'acquisition'] == 'Monitor':
@@ -200,12 +187,12 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
     def send_data(self, datatosend, data_type='0D'):
         channels_name = [ch.name for ch in self.channels_ai]
         if self.settings['diodes', 'acquisition'] != 'All':
-            self.data_grabed_signal.emit([DataFromPlugins(
+            self.dte_signal.emit(DataToExport('grouped', data=[DataFromPlugins(
                 name='Monitor Diodes',
                 data=datatosend,
-                dim=f'Data{data_type}', labels=channels_name)])
+                dim=f'Data{data_type}', labels=channels_name)]))
         else:
-            self.data_grabed_signal.emit([DataFromPlugins(
+            self.dte_signal.emit(DataToExport('separated', data=[DataFromPlugins(
                 name='Monitor Diodes',
                 data=datatosend[0:2],
                 dim=f'Data{data_type}', labels=channels_name[0:2]),
@@ -213,7 +200,7 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
                     name='Amplified difference',
                     data=[datatosend[2]],
                     dim=f'Data{data_type}', labels=[channels_name[2]])
-            ])
+            ]))
 
     def stop(self):
         try:
