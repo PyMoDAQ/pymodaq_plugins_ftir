@@ -9,17 +9,18 @@ from pymodaq.utils.gui_utils.dock import Dock
 from pymodaq.utils.plotting.data_viewers.viewer1D import Viewer1D
 import pymodaq.utils.gui_utils.layout
 from pymodaq.utils import config as config_mod
-from pymodaq.utils.daq_utils import  Axis
+
 from pymodaq.utils import daq_utils as utils
+from pymodaq.utils.logger import set_logger, get_module_name
 from pymodaq.utils import math_utils as mutils
 from pymodaq.utils.messenger import messagebox
-from pymodaq.utils.h5modules import browse_data, H5BrowserUtil
+from pymodaq.utils.h5modules.browsing import browse_data, H5BrowserUtil
 from scipy.constants import speed_of_light
-from pymodaq_plugins_ftir.utils.configuration import ConfigFTIR
+from pymodaq_plugins_ftir.utils import Config as ConfigFTIR
 
 
 config = ConfigFTIR()
-logger = utils.set_logger(utils.get_module_name(__file__))
+logger = set_logger(get_module_name(__file__))
 
 
 class FTIR(CustomApp):
@@ -103,7 +104,7 @@ class FTIR(CustomApp):
         self.spectrum_dock.addWidget(spectrum_widget)
         self.dockarea.addDock(self.spectrum_dock, 'bottom')
         self.spectrum_viewer.roi_manager.add_roi_programmatically()
-        self.spectrum_viewer.roi_manager.ROI_changed_finished.connect(self.update_spectrum_wl)
+        self.spectrum_viewer.roi_manager.roi_changed.connect(self.update_spectrum_wl)
 
         spectrum_wl_widget = QtWidgets.QWidget()
         self.spectrum_wl_viewer = Viewer1D(spectrum_wl_widget)

@@ -41,12 +41,11 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
         super().__init__(parent, params_state)
 
         self.channels_ai = None
-        self.clock_settings = None
         self.data_tot = None
         self.live = False
         self.Naverage = 1
         self.ind_average = 0
-        self.clock_settings_ai = None
+        self.clock_settings_ai: ClockSettings = None
 
     def commit_settings(self, param):
         """
@@ -87,31 +86,31 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
 
     def update_tasks(self):
         if self.settings['diodes', 'acquisition'] == 'Monitor':
-            self.channels_ai = [AIChannel(name=self.settings.child('diodes', 'ai_monitor_plus').value(),
+            self.channels_ai = [AIChannel(name=self.settings['diodes', 'ai_monitor_plus'],
                                           source='Analog_Input', analog_type='Voltage',
                                           value_min=-10., value_max=10., termination='Diff', ),
-                                AIChannel(name=self.settings.child('diodes', 'ai_monitor_minus').value(),
+                                AIChannel(name=self.settings['diodes', 'ai_monitor_minus'],
                                           source='Analog_Input', analog_type='Voltage',
                                           value_min=-10., value_max=10., termination='Diff', )]
         elif self.settings['diodes', 'acquisition'] == 'Diff':
-            self.channels_ai = [AIChannel(name=self.settings.child('diodes', 'ai_diff').value(),
+            self.channels_ai = [AIChannel(name=self.settings['diodes', 'ai_diff'],
                                           source='Analog_Input', analog_type='Voltage',
                                           value_min=-10., value_max=10., termination='Diff', ),
                                 ]
         else:
-            self.channels_ai = [AIChannel(name=self.settings.child('diodes', 'ai_monitor_plus').value(),
+            self.channels_ai = [AIChannel(name=self.settings['diodes', 'ai_monitor_plus'],
                                           source='Analog_Input', analog_type='Voltage',
                                           value_min=-10., value_max=10., termination='Diff', ),
-                                AIChannel(name=self.settings.child('diodes', 'ai_monitor_minus').value(),
+                                AIChannel(name=self.settings['diodes', 'ai_monitor_minus'],
                                           source='Analog_Input', analog_type='Voltage',
                                           value_min=-10., value_max=10., termination='Diff', ),
-                                AIChannel(name=self.settings.child('diodes', 'ai_diff').value(),
+                                AIChannel(name=self.settings['diodes', 'ai_diff'],
                                           source='Analog_Input', analog_type='Voltage',
                                           value_min=-10., value_max=10., termination='Diff', ),
                                 ]
 
-        self.clock_settings_ai = ClockSettings(frequency=self.settings.child('diodes', 'frequency').value(),
-                                               Nsamples=self.settings.child('diodes', 'Nsamples').value(),
+        self.clock_settings_ai = ClockSettings(frequency=self.settings['diodes', 'frequency'],
+                                               Nsamples=self.settings['diodes', 'Nsamples'],
                                                repetition=self.live)
 
         self.controller_diodes['ai'].update_task(self.channels_ai, self.clock_settings_ai)
@@ -154,7 +153,8 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
             self.stop()
         if not DEBUG:
             if self.controller_diodes['ai'].c_callback is None:
-                self.controller_diodes['ai'].register_callback(self.read_data, 'Nsamples', self.clock_settings_ai.Nsamples)
+                self.controller_diodes['ai'].register_callback(self.read_data, 'Nsamples',
+                                                               self.clock_settings_ai.Nsamples)
         self.controller_diodes['ai'].task.StartTask()
         if DEBUG:
             QThread.msleep(500)
@@ -169,6 +169,8 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
 
         self.data_tot += 1 / self.Naverage * data.reshape(len(self.channels_ai), self.clock_settings_ai.Nsamples)
 
+        logger.debug('Reading data from task')
+
         if self.ind_average == self.Naverage:
             self.emit_data(self.data_tot)
             self.ind_average = 0
@@ -177,6 +179,7 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
         return 0  #mandatory for the PyDAQmx callback
 
     def emit_data(self, data):
+        logger.debug('Emitting data from task')
         data = np.mean(data, 1)
         if len(self.channels_ai) == 1 and data.size == 1:
             data_export = [np.array([data[0]])]
@@ -185,6 +188,7 @@ class DAQ_0DViewer_Diodes(DAQ_Viewer_base):
         self.send_data(data_export)
 
     def send_data(self, datatosend, data_type='0D'):
+        logger.debug('sending data from task')
         channels_name = [ch.name for ch in self.channels_ai]
         if self.settings['diodes', 'acquisition'] != 'All':
             self.dte_signal.emit(DataToExport('grouped', data=[DataFromPlugins(

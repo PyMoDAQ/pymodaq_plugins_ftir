@@ -3,7 +3,7 @@ from qtpy.QtCore import QThread, QObject, Slot
 from easydict import EasyDict as edict
 from pymodaq.utils.daq_utils import ThreadCommand, getLineInfo
 from pymodaq.utils.logger import set_logger, get_module_name
-from pymodaq.utils.data import DataFromPlugins,  Axis
+from pymodaq.utils.data import DataFromPlugins,  Axis, DataToExport
 from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pymodaq.utils.parameter.utils import iter_children
 from pymodaq_plugins_daqmx.hardware.national_instruments.daqmx import DAQmx, ClockSettings, AIChannel
@@ -113,30 +113,31 @@ class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
         self.Naverage_asked = Naverage
         self.move_abs(self.settings['positions', 'start'])
 
-        while not np.abs(self.check_position() - self.settings['positions', 'start']) < self.settings['epsilon']:
+        while not np.abs(self.get_actuator_value() - self.settings['positions', 'start']) < self.settings['epsilon']:
             QThread.msleep(100)
-        self.stage_done(self.check_position())
+        self.stage_done(self.get_actuator_value())
 
-    @Slot(float)
     def stage_done(self, position: float):
         if np.abs(position - self.settings['positions', 'start']) < self.settings['epsilon']:
             self.move_abs(self.settings['positions', 'stop'])
             super().grab_data(self.Naverage_asked)
 
     def emit_data(self, data):
+        logger.debug('autoco emitting data from task')
         data_export = [np.array(data[ind]) for ind in range(len(self.channels_ai))]
         self.move_abs(self.settings['positions', 'start'])
         self.send_data(data_export)
 
-    def send_data(self, datatosend):
+    def send_data(self, datatosend, data_type='0D'):
+        logger.debug('autoco sending data from task')
         channels_name = [ch.name for ch in self.channels_ai]
         if self.settings['diodes', 'acquisition'] != 'All':
-            self.data_grabed_signal.emit([DataFromPlugins(
+            self.dte_signal.emit(DataToExport('all', data=[DataFromPlugins(
                 name='Monitor Diodes',
                 data=datatosend,
-                dim=f'Data1D', labels=channels_name)])
+                dim=f'Data1D', labels=channels_name)]))
         else:
-            self.data_grabed_signal.emit([DataFromPlugins(
+            self.dte_signal.emit(DataToExport('all', data=[DataFromPlugins(
                 name='Monitor Diodes',
                 data=datatosend[0:2],
                 dim=f'Data1D', labels=channels_name[0:2]),
@@ -144,9 +145,7 @@ class DAQ_1DViewer_Autoco(DAQ_0DViewer_Diodes, DAQ_Move_SmarAct, QObject):
                     name='Amplified difference',
                     data=[datatosend[2]],
                     dim=f'Data1D', labels=[channels_name[2]])
-            ])
-
-
+            ]))
 
     def stop(self):
         try:
