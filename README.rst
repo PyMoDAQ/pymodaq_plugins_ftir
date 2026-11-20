@@ -90,11 +90,10 @@ Calibrations
 
 ``pymodaq_plugins_ftir.hardware.twins.calibrations`` gives the law ``delta_n(l)`` used to convert a thickness
 difference to a wavelength. As the other factories of PyMoDAQ, each calibration is a class registered with a
-decorator, in its own module of that folder, all imported automatically (``single_point.py``, ``sellmeier.py``,
+decorator, in its own module of that folder, all imported automatically by the factory (``single_point.py``, ``sellmeier.py``,
 ``polynomial.py``); the factory itself is in ``hardware/twins/calibration_factory.py``; the Sellmeier equations and
 the materials are in ``hardware/twins/materials.py``. Each one has a ``spectrum(thickness_nm, signal)`` method::
 
-    from pymodaq_plugins_ftir.hardware.twins import calibrations  # registers all the calibrations
     from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
     from pymodaq_plugins_ftir.hardware.twins.calibrations.polynomial import PolynomialCalibration
 

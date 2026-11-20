@@ -159,7 +159,6 @@ def _peak(calibration, e, signal):
 
 
 def test_calibration_factory():
-    from pymodaq_plugins_ftir.hardware.twins import calibrations  # noqa: F401 (registers all the calibrations)
     from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
     from pymodaq_plugins_ftir.hardware.twins.calibrations.polynomial import PolynomialCalibration
     from pymodaq_plugins_ftir.hardware.twins.calibrations.sellmeier import SellmeierCalibration
@@ -199,7 +198,6 @@ def test_materials_are_in_their_own_module():
 
 @pytest.mark.parametrize('wavelength', [450., 633., 1000.])
 def test_calibrations_recover_a_line(wavelength):
-    from pymodaq_plugins_ftir.hardware.twins import calibrations  # registers all the calibrations
     from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
     from pymodaq_plugins_ftir.hardware.twins.calibrations.polynomial import PolynomialCalibration
     e, signal = _line_interferogram(wavelength)
@@ -209,3 +207,14 @@ def test_calibrations_recover_a_line(wavelength):
     assert _peak(poly, e, signal) == pytest.approx(wavelength, abs=2.)
     single = _peak(CalibrationFactory.create('Single point', wavelength_nm=632.8), e, signal)
     assert (abs(single - wavelength) > 10) if wavelength != 633. else abs(single - wavelength) < 1.
+
+
+def test_calibrations_are_loaded_by_the_factory_alone():
+    """A fresh interpreter that only imports the factory finds all the calibrations"""
+    import subprocess
+    import sys
+    code = ('from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory;'
+            'print(sorted(CalibrationFactory.keys()));'
+            'print(float(CalibrationFactory.create("Sellmeier").delta_n(632.8)))')
+    out = subprocess.run([sys.executable, '-I', '-c', code], capture_output=True, text=True, check=True).stdout
+    assert "['Polynomial', 'Sellmeier', 'Single point']" in out
