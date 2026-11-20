@@ -4,9 +4,10 @@ birefringent material to a wavelength. Pure numpy (no Qt, no PyMoDAQ).
 
 The interferogram is ``I(e) = integral S(l) cos(2 pi delta_n(l) e / l) dl`` so the analysis only needs the law
 ``delta_n(l)``. Same pattern as the other factories of PyMoDAQ (loss functions of the adaptive extension...): a base
-class, a ``register`` decorator and a folder (this one) holding one module per calibration::
+class, a ``register`` decorator and a folder (``calibrations/``) holding one module per calibration, all imported
+automatically (``import pymodaq_plugins_ftir.hardware.twins.calibrations``)::
 
-    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationFactory
+    from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
 
     @CalibrationFactory.register()
     class MyCalibration(CalibrationBase):

@@ -159,8 +159,10 @@ def _peak(calibration, e, signal):
 
 
 def test_calibration_factory():
-    from pymodaq_plugins_ftir.hardware.twins.calibrations import (CalibrationFactory, PolynomialCalibration,
-                                                            SellmeierCalibration)
+    from pymodaq_plugins_ftir.hardware.twins import calibrations  # noqa: F401 (registers all the calibrations)
+    from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
+    from pymodaq_plugins_ftir.hardware.twins.calibrations.polynomial import PolynomialCalibration
+    from pymodaq_plugins_ftir.hardware.twins.calibrations.sellmeier import SellmeierCalibration
     assert set(CalibrationFactory.keys()) >= {'Single point', 'Sellmeier', 'Polynomial'}
     assert isinstance(CalibrationFactory.create('Sellmeier'), SellmeierCalibration)
     with pytest.raises(ValueError):
@@ -172,7 +174,7 @@ def test_calibration_factory():
 
 
 def test_new_calibrations_are_registered_with_a_decorator():
-    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationBase, CalibrationFactory
+    from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationBase, CalibrationFactory
 
     @CalibrationFactory.register()
     class Constant(CalibrationBase):
@@ -197,7 +199,9 @@ def test_materials_are_in_their_own_module():
 
 @pytest.mark.parametrize('wavelength', [450., 633., 1000.])
 def test_calibrations_recover_a_line(wavelength):
-    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationFactory, PolynomialCalibration
+    from pymodaq_plugins_ftir.hardware.twins import calibrations  # registers all the calibrations
+    from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
+    from pymodaq_plugins_ftir.hardware.twins.calibrations.polynomial import PolynomialCalibration
     e, signal = _line_interferogram(wavelength)
     assert _peak(CalibrationFactory.create('Sellmeier'), e, signal) == pytest.approx(wavelength, abs=1.)
     lines = np.linspace(350., 1100., 6)

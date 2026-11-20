@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 
 from pymodaq_plugins_ftir.hardware.twins.materials import ALPHA_BBO, SellmeierBirefringent
-from pymodaq_plugins_ftir.hardware.twins.calibrations.calibration_factory import CalibrationBase, CalibrationFactory
+from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationBase, CalibrationFactory
 
 
 @CalibrationFactory.register()

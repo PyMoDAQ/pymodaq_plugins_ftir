@@ -597,8 +597,9 @@ def spectrum_from_interferogram_dispersive(thickness_nm: np.ndarray, signal: np.
                                            wavelength_nm: Optional[np.ndarray] = None,
                                            apodization: Optional[str] = 'hann') -> Tuple[np.ndarray, np.ndarray]:
     """Spectrum against wavelength (nm) trusting the Sellmeier equations of ``material``: shortcut of the
-    ``'Sellmeier'`` calibration of :class:`pymodaq_plugins_ftir.hardware.twins.calibrations.CalibrationFactory`"""
-    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationFactory
+    ``'Sellmeier'`` calibration of :class:`pymodaq_plugins_ftir.hardware.twins.calibration_factory.CalibrationFactory`"""
+    from pymodaq_plugins_ftir.hardware.twins import calibrations  # noqa: F401 (registers the calibrations)
+    from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
     return CalibrationFactory.create('Sellmeier', material=material).spectrum(thickness_nm, signal, wavelength_nm,
                                                                                apodization)
 
