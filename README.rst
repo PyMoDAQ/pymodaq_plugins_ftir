@@ -82,6 +82,20 @@ thickness axis (one calibration point with a laser): the lines are then recovere
 simulation*, which uses the same equations. On the real setup the accuracy is limited by the one of the Sellmeier
 coefficients of the wedges and by the calibration.
 
+Calibrations
+------------
+
+``pymodaq_plugins_ftir.hardware.calibration`` gives the law ``delta_n(l)`` used to convert a thickness difference to a
+wavelength, chosen with a factory (``make_calibration``), each one having a ``spectrum(thickness_nm, signal)`` method::
+
+    from pymodaq_plugins_ftir.hardware.calibration import make_calibration, PolynomialCalibration
+
+    make_calibration('single point', wavelength_nm=632.8, delta_n=0.1212)   # one laser line, dispersion ignored
+    make_calibration('sellmeier')                                           # trust the Sellmeier equations
+    PolynomialCalibration.fit(known_lines_nm, measured_delta_n, order=3)    # custom polynomial, fitted on known lines
+
+Other kinds are added with ``register_calibration(name, factory)``.
+
 Not simulated: spectral response of the photodiodes, transmission of the optics, acceleration ramps and closed loop
 jitter of the stage, bandwidth of the amplifier.
 

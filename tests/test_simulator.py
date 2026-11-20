@@ -144,3 +144,40 @@ def test_dispersive_analysis_corrects_the_birefringence_dispersion(wavelength):
     selection = (wl_c > 300) & (wl_c < 1500)
     shift = wl_c[selection][np.argmax(spectrum_c[selection])] - wavelength
     assert abs(shift) > 10 if wavelength != 633. else abs(shift) < 1.
+
+
+def _line_interferogram(wavelength):
+    optics = TwinsOptics(source=LightSource('line', [SpectralBand(wavelength, 1.)]), detection=QUIET,
+                         apex_angle_deg=15., wedge_length_um=25000.)
+    x = np.linspace(-12500, 12500, 2 ** 16)
+    return optics.thickness_nm(x), optics.signals(x, noise=False)['diff']
+
+
+def _peak(calibration, e, signal):
+    wl, spectrum = calibration.spectrum(e, signal)
+    return wl[np.argmax(spectrum)]
+
+
+def test_calibration_factory():
+    from pymodaq_plugins_ftir.hardware.calibration import (make_calibration, calibration_kinds,
+                                                           PolynomialCalibration, SellmeierCalibration)
+    assert set(calibration_kinds()) >= {'single point', 'sellmeier', 'polynomial'}
+    assert isinstance(make_calibration('Sellmeier'), SellmeierCalibration)
+    with pytest.raises(ValueError):
+        make_calibration('unknown')
+    # a polynomial fitted on a few "known lines" reproduces the Sellmeier law between them
+    lines = np.array([400., 500., 633., 800., 1000.])
+    poly = PolynomialCalibration.fit(lines, ALPHA_BBO.delta_n(lines), order=3)
+    assert poly.delta_n(700.) == pytest.approx(float(ALPHA_BBO.delta_n(700.)), abs=2e-4)
+
+
+@pytest.mark.parametrize('wavelength', [450., 633., 1000.])
+def test_calibrations_recover_a_line(wavelength):
+    from pymodaq_plugins_ftir.hardware.calibration import make_calibration, PolynomialCalibration
+    e, signal = _line_interferogram(wavelength)
+    assert _peak(make_calibration('sellmeier'), e, signal) == pytest.approx(wavelength, abs=1.)
+    lines = np.linspace(350., 1100., 6)
+    poly = PolynomialCalibration.fit(lines, ALPHA_BBO.delta_n(lines), order=4)
+    assert _peak(poly, e, signal) == pytest.approx(wavelength, abs=2.)
+    single = _peak(make_calibration('single point', wavelength_nm=632.8), e, signal)
+    assert (abs(single - wavelength) > 10) if wavelength != 633. else abs(single - wavelength) < 1.
