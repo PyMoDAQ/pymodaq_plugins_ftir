@@ -51,46 +51,12 @@ from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
+from pymodaq_plugins_ftir.hardware.materials import ALPHA_BBO, MATERIALS, SellmeierBirefringent
+
 C_NM_PER_FS = 299.792458  # speed of light in nm/fs
 
 CHANNELS = ('monitor_plus', 'monitor_minus', 'diff')
 CHANNEL_LABELS = {'monitor_plus': 'Monitor +', 'monitor_minus': 'Monitor -', 'diff': 'Amplified difference'}
-
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Birefringent material
-# ---------------------------------------------------------------------------------------------------------------------
-@dataclass(frozen=True)
-class SellmeierBirefringent:
-    """Uniaxial crystal described by Sellmeier equations ``n^2 = A + B / (l^2 - C) - D l^2`` (l in µm)"""
-    name: str
-    ordinary: Tuple[float, float, float, float]
-    extraordinary: Tuple[float, float, float, float]
-
-    @staticmethod
-    def _index(coeffs, wavelength_nm):
-        a, b, c, d = coeffs
-        l2 = (np.asarray(wavelength_nm, dtype=float) * 1e-3) ** 2
-        return np.sqrt(a + b / (l2 - c) - d * l2)
-
-    def n_o(self, wavelength_nm):
-        return self._index(self.ordinary, wavelength_nm)
-
-    def n_e(self, wavelength_nm):
-        return self._index(self.extraordinary, wavelength_nm)
-
-    def delta_n(self, wavelength_nm):
-        """Birefringence ``n_o - n_e`` (positive for alpha-BBO, a negative uniaxial crystal)"""
-        return self.n_o(wavelength_nm) - self.n_e(wavelength_nm)
-
-
-#: alpha-BBO, Sellmeier coefficients as published by the crystal vendors (valid ~ 190 nm - 3.5 µm),
-#: delta_n ~ 0.121 at 633 nm (the project report quotes 0.1225)
-ALPHA_BBO = SellmeierBirefringent(name='alpha-BBO',
-                                  ordinary=(2.67579, 0.02099, 0.00470, 0.00528),
-                                  extraordinary=(2.31197, 0.01184, 0.01607, 0.00400))
-
-MATERIALS = {ALPHA_BBO.name: ALPHA_BBO}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -630,25 +596,11 @@ def spectrum_from_interferogram_dispersive(thickness_nm: np.ndarray, signal: np.
                                            material: SellmeierBirefringent = ALPHA_BBO,
                                            wavelength_nm: Optional[np.ndarray] = None,
                                            apodization: Optional[str] = 'hann') -> Tuple[np.ndarray, np.ndarray]:
-    """Reference implementation using the Sellmeier equations: spectrum against wavelength (nm)
-
-    The interferogram is ``I(e) = integral S(l) cos(2 pi k(l) e) dl`` with ``k(l) = delta_n(l) / l`` (cycles per nm of
-    thickness difference ``e``): its Fourier transform against ``e`` is the spectrum against ``k``, that is then
-    mapped to wavelength with the Sellmeier ``delta_n(l)`` (and the Jacobian ``dk/dl``). The thickness axis
-    must be regularly sampled and calibrated (apex angle, zero delay position: one calibration point with a laser, the
-    dispersion of the birefringence then comes from the equations instead of from a polynomial calibration).
-    """
-    thickness_nm = np.asarray(thickness_nm, dtype=float)
-    signal = np.asarray(signal, dtype=float) - np.mean(signal)
-    if apodization == 'hann':
-        signal = signal * np.hanning(signal.size)
-    de = float(np.mean(np.diff(thickness_nm)))
-    spec_k = np.abs(np.fft.rfft(signal))
-    k = np.fft.rfftfreq(signal.size, d=abs(de))  # cycles / nm
-    wl = np.linspace(250., 1600., 4000) if wavelength_nm is None else np.asarray(wavelength_nm, dtype=float)
-    k_of_l = material.delta_n(wl) / wl
-    jacobian = np.abs(np.gradient(k_of_l, wl))
-    return wl, np.interp(k_of_l, k, spec_k, left=0., right=0.) * jacobian
+    """Spectrum against wavelength (nm) trusting the Sellmeier equations of ``material``: shortcut of the
+    ``'Sellmeier'`` calibration of :class:`pymodaq_plugins_ftir.hardware.calibrations.CalibrationFactory`"""
+    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationFactory
+    return CalibrationFactory.create('Sellmeier', material=material).spectrum(thickness_nm, signal, wavelength_nm,
+                                                                               apodization)
 
 
 __all__ = ['C_NM_PER_FS', 'CHANNELS', 'CHANNEL_LABELS', 'SellmeierBirefringent', 'ALPHA_BBO', 'MATERIALS',

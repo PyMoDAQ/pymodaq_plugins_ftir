@@ -159,25 +159,49 @@ def _peak(calibration, e, signal):
 
 
 def test_calibration_factory():
-    from pymodaq_plugins_ftir.hardware.calibration import (make_calibration, calibration_kinds,
-                                                           PolynomialCalibration, SellmeierCalibration)
-    assert set(calibration_kinds()) >= {'single point', 'sellmeier', 'polynomial'}
-    assert isinstance(make_calibration('Sellmeier'), SellmeierCalibration)
+    from pymodaq_plugins_ftir.hardware.calibrations import (CalibrationFactory, PolynomialCalibration,
+                                                            SellmeierCalibration)
+    assert set(CalibrationFactory.keys()) >= {'Single point', 'Sellmeier', 'Polynomial'}
+    assert isinstance(CalibrationFactory.create('Sellmeier'), SellmeierCalibration)
     with pytest.raises(ValueError):
-        make_calibration('unknown')
+        CalibrationFactory.create('unknown')
     # a polynomial fitted on a few "known lines" reproduces the Sellmeier law between them
     lines = np.array([400., 500., 633., 800., 1000.])
     poly = PolynomialCalibration.fit(lines, ALPHA_BBO.delta_n(lines), order=3)
     assert poly.delta_n(700.) == pytest.approx(float(ALPHA_BBO.delta_n(700.)), abs=2e-4)
 
 
+def test_new_calibrations_are_registered_with_a_decorator():
+    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationBase, CalibrationFactory
+
+    @CalibrationFactory.register()
+    class Constant(CalibrationBase):
+        usual_name = 'Test constant'
+
+        def __init__(self, value=0.1):
+            self.value = value
+
+        def delta_n(self, wavelength_nm):
+            return np.full(np.shape(wavelength_nm), self.value)
+
+    try:
+        assert CalibrationFactory.create('Test constant', value=0.12).delta_n(500.) == pytest.approx(0.12)
+    finally:
+        CalibrationFactory._builders.pop('Test constant')
+
+
+def test_materials_are_in_their_own_module():
+    from pymodaq_plugins_ftir.hardware.materials import ALPHA_BBO as alpha_bbo, MATERIALS, register_material
+    assert MATERIALS['alpha-BBO'] is alpha_bbo
+
+
 @pytest.mark.parametrize('wavelength', [450., 633., 1000.])
 def test_calibrations_recover_a_line(wavelength):
-    from pymodaq_plugins_ftir.hardware.calibration import make_calibration, PolynomialCalibration
+    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationFactory, PolynomialCalibration
     e, signal = _line_interferogram(wavelength)
-    assert _peak(make_calibration('sellmeier'), e, signal) == pytest.approx(wavelength, abs=1.)
+    assert _peak(CalibrationFactory.create('Sellmeier'), e, signal) == pytest.approx(wavelength, abs=1.)
     lines = np.linspace(350., 1100., 6)
     poly = PolynomialCalibration.fit(lines, ALPHA_BBO.delta_n(lines), order=4)
     assert _peak(poly, e, signal) == pytest.approx(wavelength, abs=2.)
-    single = _peak(make_calibration('single point', wavelength_nm=632.8), e, signal)
+    single = _peak(CalibrationFactory.create('Single point', wavelength_nm=632.8), e, signal)
     assert (abs(single - wavelength) > 10) if wavelength != 633. else abs(single - wavelength) < 1.

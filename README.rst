@@ -85,16 +85,19 @@ coefficients of the wedges and by the calibration.
 Calibrations
 ------------
 
-``pymodaq_plugins_ftir.hardware.calibration`` gives the law ``delta_n(l)`` used to convert a thickness difference to a
-wavelength, chosen with a factory (``make_calibration``), each one having a ``spectrum(thickness_nm, signal)`` method::
+``pymodaq_plugins_ftir.hardware.calibrations`` gives the law ``delta_n(l)`` used to convert a thickness difference to a
+wavelength. As the other factories of PyMoDAQ, each calibration is a class registered with a decorator, in its own
+module of that folder (``single_point.py``, ``sellmeier.py``, ``polynomial.py``); the Sellmeier equations and the
+materials are in ``hardware/materials.py``. Each one has a ``spectrum(thickness_nm, signal)`` method::
 
-    from pymodaq_plugins_ftir.hardware.calibration import make_calibration, PolynomialCalibration
+    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationFactory, PolynomialCalibration
 
-    make_calibration('single point', wavelength_nm=632.8, delta_n=0.1212)   # one laser line, dispersion ignored
-    make_calibration('sellmeier')                                           # trust the Sellmeier equations
-    PolynomialCalibration.fit(known_lines_nm, measured_delta_n, order=3)    # custom polynomial, fitted on known lines
+    CalibrationFactory.create('Single point', wavelength_nm=632.8, delta_n=0.1212)  # one laser line, no dispersion
+    CalibrationFactory.create('Sellmeier')                                          # trust the Sellmeier equations
+    PolynomialCalibration.fit(known_lines_nm, measured_delta_n, order=3)            # custom polynomial, fitted
 
-Other kinds are added with ``register_calibration(name, factory)``.
+Add your own with ``@CalibrationFactory.register()`` on a subclass of ``CalibrationBase`` (``usual_name``, ``params``,
+``delta_n``).
 
 Not simulated: spectral response of the photodiodes, transmission of the optics, acceleration ramps and closed loop
 jitter of the stage, bandwidth of the amplifier.
