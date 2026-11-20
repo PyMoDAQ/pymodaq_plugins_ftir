@@ -55,7 +55,7 @@ script or a notebook:
 * ``get_bench()``: the bench shared by the plugins of a process, so that the card sees the stage of the actuator
   plugin. The default values come from the ``simulation`` section of the configuration file of the package
   (``config_ftir.toml`` in the PyMoDAQ user configuration folder). The geometry of the TWINS (apex angle of the
-  wedges, 7°, and their length, 25 mm, as on the CEMES setup; position of the wedge centre; zero delay position, which
+  wedges, 15°, and their length, 25 mm, as on the CEMES setup; position of the wedge centre; zero delay position, which
   depends on the fixed plate and on the mounting of the stage) can also be changed in the settings of the stage
   plugin. The beam crosses the moving wedge on 25 mm of stage travel only: the signal vanishes outside.
 

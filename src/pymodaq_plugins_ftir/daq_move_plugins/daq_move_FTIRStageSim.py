@@ -26,7 +26,8 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
     that one plugin can replace the other in a Dashboard. The velocity, the travel range and the zero delay position
     come from the ``simulation`` section of the configuration of the package (``config_ftir.toml``, in µm there) and
     can be changed in the settings, as the geometry of the TWINS (``TWINS (simulation)`` group: apex angle and
-    length of the wedges, positions of the wedge centre and of the zero delay). One fringe of a HeNe laser is ~ 0.043 mm of stage travel (7° wedges).
+    length of the wedges, positions of the wedge centre and of the zero delay). One fringe of a HeNe laser is
+    ~ 0.020 mm of stage travel (15° wedges).
 
     Tested with PyMoDAQ 5.3.12, Python 3.13, Linux, against the simulator only (there is no hardware behind it).
     """
@@ -50,7 +51,7 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
         ]},
         {'title': 'TWINS (simulation):', 'name': 'twins', 'type': 'group', 'children': [
             {'title': 'Wedge apex angle (°):', 'name': 'apex_angle', 'type': 'float',
-             'value': get_config('simulation', 'twins', 'apex_angle_deg', default=7.), 'min': 0.01, 'max': 45.},
+             'value': get_config('simulation', 'twins', 'apex_angle_deg', default=15.), 'min': 0.01, 'max': 45.},
             {'title': 'Wedge length (mm):', 'name': 'wedge_length', 'type': 'float',
              'value': get_config('simulation', 'twins', 'wedge_length_um', default=25000.) / UM_PER_MM, 'min': 0.1,
              'tip': 'Length of the moving wedge along the displacement: the beam crosses it on this travel only'},

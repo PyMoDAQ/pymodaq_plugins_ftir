@@ -171,7 +171,7 @@ class TwinsOptics:
     ----------
     source: LightSource
     apex_angle_deg: float
-        apex angle of the wedges (7° on the CEMES setup)
+        apex angle of the wedges (15° on the CEMES setup)
     zero_delay_position_um: float
         stage position where the delay between the two polarisations is zero. It depends on the fixed birefringent
         plate (the first one inserted) and on where the stage is mounted on the setup
@@ -187,7 +187,7 @@ class TwinsOptics:
         seed of the random generator (noise), for reproducible simulations
     """
 
-    def __init__(self, source: Optional[LightSource] = None, apex_angle_deg: float = 7.,
+    def __init__(self, source: Optional[LightSource] = None, apex_angle_deg: float = 15.,
                  zero_delay_position_um: float = 0., wedge_length_um: float = 25000., wedge_center_um: float = 0.,
                  beam_diameter_um: float = 1000., material: SellmeierBirefringent = ALPHA_BBO,
                  detection: Optional[DetectionSettings] = None, seed: Optional[int] = None):
@@ -546,7 +546,7 @@ class TwinsFTIRBench:
                 setattr(detection, name, float(value))
         material = MATERIALS.get(get('twins', 'material', default=ALPHA_BBO.name), ALPHA_BBO)
         optics = TwinsOptics(source=source,
-                             apex_angle_deg=float(get('twins', 'apex_angle_deg', default=7.)),
+                             apex_angle_deg=float(get('twins', 'apex_angle_deg', default=15.)),
                              zero_delay_position_um=float(get('twins', 'zero_delay_position_um', default=0.)),
                              wedge_length_um=float(get('twins', 'wedge_length_um', default=25000.)),
                              wedge_center_um=float(get('twins', 'wedge_center_um', default=0.)),

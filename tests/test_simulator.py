@@ -95,7 +95,7 @@ def test_acquisition_during_a_move(bench):
     assert result.positions_um[0] == pytest.approx(0.)
     assert result.positions_um[-1] == pytest.approx(2000.)
     assert set(result.data) == set(CHANNELS)
-    # ~ 2000 / 42.5 fringes on the difference channel: count the zero crossings
+    # ~ 2000 / fringe period (~ 19.5 µm) fringes on the difference channel: count the zero crossings
     diff = result.data['diff'] - np.mean(result.data['diff'])
     crossings = np.count_nonzero(np.diff(np.sign(diff)) != 0)
     assert crossings == pytest.approx(2 * 2000 / bench.optics.fringe_period_um(), rel=0.1)
