@@ -3,6 +3,7 @@
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+_version.py
 
 *.py[cod]
 *$py.class
@@ -113,3 +114,4 @@ venv.bak/
 
 *yacctab.py
 *lextab.py
+STATUS_AI_DEV.md
