@@ -5,7 +5,7 @@ birefringent material to a wavelength. Pure numpy (no Qt, no PyMoDAQ).
 The interferogram is ``I(e) = integral S(l) cos(2 pi delta_n(l) e / l) dl`` so the analysis only needs the law
 ``delta_n(l)``. Same pattern as the other factories of PyMoDAQ (loss functions of the adaptive extension...): a base
 class, a ``register`` decorator and a folder (``calibrations/``) holding one module per calibration, all imported
-automatically (``import pymodaq_plugins_ftir.hardware.twins.calibrations``)::
+automatically by the factory (no need to import them)::
 
     from pymodaq_plugins_ftir.hardware.twins.calibration_factory import CalibrationFactory
 
@@ -19,6 +19,7 @@ automatically (``import pymodaq_plugins_ftir.hardware.twins.calibrations``)::
 
     CalibrationFactory.create('My calibration', value=0.11)
 """
+import importlib
 from abc import ABCMeta, abstractmethod
 from typing import Callable, List, Optional, Tuple, Type
 
@@ -77,11 +78,18 @@ class CalibrationFactory:
         return inner_wrapper
 
     @classmethod
+    def _load_calibrations(cls):
+        """Import the ``calibrations`` folder (all its modules register their class): nothing else has to import it"""
+        importlib.import_module('pymodaq_plugins_ftir.hardware.twins.calibrations')
+
+    @classmethod
     def keys(cls) -> List[str]:
+        cls._load_calibrations()
         return list(cls._builders)
 
     @classmethod
     def get(cls, key: str) -> Type[CalibrationBase]:
+        cls._load_calibrations()
         try:
             return cls._builders[key]
         except KeyError:
