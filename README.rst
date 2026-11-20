@@ -42,7 +42,10 @@ The real stage is driven by ``DAQ_Move_SmarActSCUAscii`` of `pymodaq_plugins_sma
 The simulation
 ==============
 
-``pymodaq_plugins_ftir.hardware.twins_simulator`` is pure numpy (no Qt, no PyMoDAQ), it can also be used from a
+Everything that is specific to the TWINS (simulator, materials, calibrations) lives in ``hardware/twins/``: the package
+can host other kinds of FTIR setups next to it.
+
+``pymodaq_plugins_ftir.hardware.twins.simulator`` is pure numpy (no Qt, no PyMoDAQ), it can also be used from a
 script or a notebook:
 
 * ``TwinsOptics``: light source (HeNe, sodium doublet, LEDs, white light...), TWINS wedges in alpha-BBO (Sellmeier
@@ -66,7 +69,7 @@ move the stage to the start position, start a move to the end position and grab 
 From a script, without any GUI::
 
     import numpy as np
-    from pymodaq_plugins_ftir.hardware.twins_simulator import (TwinsFTIRBench, TwinsOptics, SimulatedStage,
+    from pymodaq_plugins_ftir.hardware.twins.simulator import (TwinsFTIRBench, TwinsOptics, SimulatedStage,
                                                                VirtualClock, spectrum_from_interferogram)
 
     bench = TwinsFTIRBench(TwinsOptics(), SimulatedStage(clock=VirtualClock()))  # virtual clock: no waiting
@@ -85,12 +88,12 @@ coefficients of the wedges and by the calibration.
 Calibrations
 ------------
 
-``pymodaq_plugins_ftir.hardware.calibrations`` gives the law ``delta_n(l)`` used to convert a thickness difference to a
-wavelength. As the other factories of PyMoDAQ, each calibration is a class registered with a decorator, in its own
+``pymodaq_plugins_ftir.hardware.twins.calibrations`` gives the law ``delta_n(l)`` used to convert a thickness
+difference to a wavelength. As the other factories of PyMoDAQ, each calibration is a class registered with a decorator, in its own
 module of that folder (``single_point.py``, ``sellmeier.py``, ``polynomial.py``); the Sellmeier equations and the
-materials are in ``hardware/materials.py``. Each one has a ``spectrum(thickness_nm, signal)`` method::
+materials are in ``hardware/twins/materials.py``. Each one has a ``spectrum(thickness_nm, signal)`` method::
 
-    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationFactory, PolynomialCalibration
+    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationFactory, PolynomialCalibration
 
     CalibrationFactory.create('Single point', wavelength_nm=632.8, delta_n=0.1212)  # one laser line, no dispersion
     CalibrationFactory.create('Sellmeier')                                          # trust the Sellmeier equations

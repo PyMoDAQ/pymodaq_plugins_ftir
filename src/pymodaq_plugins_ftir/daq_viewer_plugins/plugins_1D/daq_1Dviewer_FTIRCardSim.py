@@ -11,7 +11,7 @@ from pymodaq.control_modules.viewer_utility_classes import DAQ_Viewer_base, como
 from pymodaq.utils.data import DataFromPlugins
 
 from pymodaq_plugins_ftir.utils import get_config
-from pymodaq_plugins_ftir.hardware.twins_simulator import (CHANNELS, CHANNEL_LABELS, AcquisitionResult,
+from pymodaq_plugins_ftir.hardware.twins.simulator import (CHANNELS, CHANNEL_LABELS, AcquisitionResult,
                                                            SimulatedAcquisitionCard, TwinsFTIRBench, get_bench,
                                                            source_presets)
 
@@ -21,7 +21,7 @@ MONITORS = ('monitor_plus', 'monitor_minus')
 class DAQ_1DViewer_FTIRCardSim(DAQ_Viewer_base):
     """Simulated acquisition card of the TWINS Fourier transform spectrometer (MCC 128 like, 16 bits)
 
-    No hardware: the card samples the voltages of the simulated bench of ``hardware/twins_simulator.py``, at the
+    No hardware: the card samples the voltages of the simulated bench of ``hardware/twins/simulator.py``, at the
     positions taken by the simulated stage (``DAQ_Move_FTIRStageSim``) during the acquisition. Three channels are
     available, as on the setup: the two monitor photodiodes (``Monitor +`` and ``Monitor -``, complementary
     interferograms) and their amplified difference (balanced detection).

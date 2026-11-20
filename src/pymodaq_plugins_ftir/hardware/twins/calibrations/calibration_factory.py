@@ -6,7 +6,7 @@ The interferogram is ``I(e) = integral S(l) cos(2 pi delta_n(l) e / l) dl`` so t
 ``delta_n(l)``. Same pattern as the other factories of PyMoDAQ (loss functions of the adaptive extension...): a base
 class, a ``register`` decorator and a folder (this one) holding one module per calibration::
 
-    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationFactory
+    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationFactory
 
     @CalibrationFactory.register()
     class MyCalibration(CalibrationBase):

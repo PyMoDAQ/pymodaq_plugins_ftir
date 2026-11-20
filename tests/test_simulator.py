@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from pymodaq_plugins_ftir.hardware.twins_simulator import (
+from pymodaq_plugins_ftir.hardware.twins.simulator import (
     ALPHA_BBO, CHANNELS, DetectionSettings, LightSource, SimulatedAcquisitionCard, SimulatedStage, SpectralBand,
     TwinsFTIRBench, TwinsOptics, VirtualClock, source_presets, spectrum_from_interferogram,
     spectrum_from_interferogram_dispersive)
@@ -159,7 +159,7 @@ def _peak(calibration, e, signal):
 
 
 def test_calibration_factory():
-    from pymodaq_plugins_ftir.hardware.calibrations import (CalibrationFactory, PolynomialCalibration,
+    from pymodaq_plugins_ftir.hardware.twins.calibrations import (CalibrationFactory, PolynomialCalibration,
                                                             SellmeierCalibration)
     assert set(CalibrationFactory.keys()) >= {'Single point', 'Sellmeier', 'Polynomial'}
     assert isinstance(CalibrationFactory.create('Sellmeier'), SellmeierCalibration)
@@ -172,7 +172,7 @@ def test_calibration_factory():
 
 
 def test_new_calibrations_are_registered_with_a_decorator():
-    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationBase, CalibrationFactory
+    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationBase, CalibrationFactory
 
     @CalibrationFactory.register()
     class Constant(CalibrationBase):
@@ -191,13 +191,13 @@ def test_new_calibrations_are_registered_with_a_decorator():
 
 
 def test_materials_are_in_their_own_module():
-    from pymodaq_plugins_ftir.hardware.materials import ALPHA_BBO as alpha_bbo, MATERIALS, register_material
+    from pymodaq_plugins_ftir.hardware.twins.materials import ALPHA_BBO as alpha_bbo, MATERIALS, register_material
     assert MATERIALS['alpha-BBO'] is alpha_bbo
 
 
 @pytest.mark.parametrize('wavelength', [450., 633., 1000.])
 def test_calibrations_recover_a_line(wavelength):
-    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationFactory, PolynomialCalibration
+    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationFactory, PolynomialCalibration
     e, signal = _line_interferogram(wavelength)
     assert _peak(CalibrationFactory.create('Sellmeier'), e, signal) == pytest.approx(wavelength, abs=1.)
     lines = np.linspace(350., 1100., 6)

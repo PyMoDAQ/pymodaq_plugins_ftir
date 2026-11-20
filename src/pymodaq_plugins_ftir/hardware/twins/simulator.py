@@ -51,7 +51,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from pymodaq_plugins_ftir.hardware.materials import ALPHA_BBO, MATERIALS, SellmeierBirefringent
+from pymodaq_plugins_ftir.hardware.twins.materials import ALPHA_BBO, MATERIALS, SellmeierBirefringent
 
 C_NM_PER_FS = 299.792458  # speed of light in nm/fs
 
@@ -597,8 +597,8 @@ def spectrum_from_interferogram_dispersive(thickness_nm: np.ndarray, signal: np.
                                            wavelength_nm: Optional[np.ndarray] = None,
                                            apodization: Optional[str] = 'hann') -> Tuple[np.ndarray, np.ndarray]:
     """Spectrum against wavelength (nm) trusting the Sellmeier equations of ``material``: shortcut of the
-    ``'Sellmeier'`` calibration of :class:`pymodaq_plugins_ftir.hardware.calibrations.CalibrationFactory`"""
-    from pymodaq_plugins_ftir.hardware.calibrations import CalibrationFactory
+    ``'Sellmeier'`` calibration of :class:`pymodaq_plugins_ftir.hardware.twins.calibrations.CalibrationFactory`"""
+    from pymodaq_plugins_ftir.hardware.twins.calibrations import CalibrationFactory
     return CalibrationFactory.create('Sellmeier', material=material).spectrum(thickness_nm, signal, wavelength_nm,
                                                                                apodization)
 

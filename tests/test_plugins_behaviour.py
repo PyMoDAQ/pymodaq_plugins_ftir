@@ -7,7 +7,7 @@ from pymodaq.utils.plugin_testing import (make_actuator, make_detector, move_abs
                                           move_home_and_wait, grab_and_wait, assert_units)
 
 from pymodaq_plugins_ftir.utils import q_from_param
-from pymodaq_plugins_ftir.hardware.twins_simulator import SimulatedStage, TwinsFTIRBench, TwinsOptics, reset_bench
+from pymodaq_plugins_ftir.hardware.twins.simulator import SimulatedStage, TwinsFTIRBench, TwinsOptics, reset_bench
 from pymodaq_plugins_ftir.daq_move_plugins.daq_move_FTIRStageSim import DAQ_Move_FTIRStageSim
 from pymodaq_plugins_ftir.daq_viewer_plugins.plugins_1D.daq_1Dviewer_FTIRCardSim import DAQ_1DViewer_FTIRCardSim
 from pymodaq_plugins_ftir.daq_viewer_plugins.plugins_0D.daq_0Dviewer_FTIRCardSim import DAQ_0DViewer_FTIRCardSim

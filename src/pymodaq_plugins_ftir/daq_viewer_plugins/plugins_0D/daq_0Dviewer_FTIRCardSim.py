@@ -7,7 +7,7 @@ from pymodaq.utils.data import DataFromPlugins
 
 from pymodaq_plugins_ftir.daq_viewer_plugins.plugins_1D.daq_1Dviewer_FTIRCardSim import (
     DAQ_1DViewer_FTIRCardSim, MONITORS)
-from pymodaq_plugins_ftir.hardware.twins_simulator import CHANNEL_LABELS, AcquisitionResult
+from pymodaq_plugins_ftir.hardware.twins.simulator import CHANNEL_LABELS, AcquisitionResult
 
 
 class DAQ_0DViewer_FTIRCardSim(DAQ_1DViewer_FTIRCardSim):

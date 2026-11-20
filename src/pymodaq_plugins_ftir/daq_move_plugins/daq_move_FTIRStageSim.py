@@ -10,13 +10,13 @@ from pymodaq_gui.parameter import Parameter
 
 from pymodaq_data import Q_
 from pymodaq_plugins_ftir.utils import get_config, config_quantity, q_from_param
-from pymodaq_plugins_ftir.hardware.twins_simulator import SimulatedStage, TwinsFTIRBench, get_bench
+from pymodaq_plugins_ftir.hardware.twins.simulator import SimulatedStage, TwinsFTIRBench, get_bench
 
 
 class DAQ_Move_FTIRStageSim(DAQ_Move_base):
     """Simulated delay stage of the TWINS Fourier transform spectrometer (SmarAct SLC linear piezo stage)
 
-    No hardware: the stage is the one of the simulated bench of ``hardware/twins_simulator.py``, shared with the
+    No hardware: the stage is the one of the simulated bench of ``hardware/twins/simulator.py``, shared with the
     simulated acquisition card (``DAQ_1DViewer_FTIRCardSim`` / ``DAQ_0DViewer_FTIRCardSim``) so that the card measures
     the interferogram at the position of this stage. The stage moves at constant velocity in real time: a move is not
     instantaneous, and an acquisition started during a move records the fringes passing by, as on the real setup.
