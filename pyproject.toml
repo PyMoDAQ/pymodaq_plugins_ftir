@@ -1,0 +1,78 @@
+[features]  # defines the plugin features contained into this plugin
+instruments = true  # true if plugin contains instrument classes (else false, notice the lowercase for toml files)
+extensions = false  # true if plugins contains dashboard extensions
+models = false  # true if plugins contains models of the extensions (PID, optimizers, data mixer, sequencer, ...)
+h5exporters = false  # true if plugin contains custom h5 file exporters
+scanners = false  # true if plugin contains custom scan layout (daq_scan extensions)
+
+[urls]
+package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_ftir'
+
+[project]
+name = "pymodaq_plugins_ftir"
+description = 'Birefringent (TWINS) Fourier transform spectrometer of CEMES: simulated SmarAct delay stage and photodiode acquisition card, to develop the FTIR extension without hardware'
+keywords = [
+    "pymodaq",
+    "plugin",
+    "instrument control",
+    "data acquisition",
+    "Fourier transform spectrometer",
+    "FTIR",
+    "TWINS",
+    "birefringent interferometer",
+    "SmarAct",
+    "photodiode",
+    "simulation",
+]
+dependencies = [
+    "pymodaq>=5.3.7",
+    "pymodaq_utils>=5.3.1",
+    "pymodaq_gui>=5.3.0",
+    "pymodaq_data>=5.3.0",
+    "numpy",
+]
+
+authors = [
+    {name = "Sebastien Weber", email = "sebastien.weber@cemes.fr"},
+]
+maintainers = [
+    {name = "Sebastien Weber", email = "sebastien.weber@cemes.fr"},
+]
+
+# nottodo: leave everything below as is!
+
+dynamic = ["version", "urls", "entry-points", "classifiers"]
+readme = "README.rst"
+license = { file="LICENSE" }
+requires-python = ">=3.10"
+
+
+[build-system]
+requires = [
+    "hatchling>=1.9.0",
+    "hatch-vcs", "toml",
+    "pymodaq_utils>=5.3.6",
+]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata.hooks.custom]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.pymodaq]
+# the "Operating System" and "Programming Language :: Python :: 3.x" classifiers are added when building the package,
+# from supported_platforms in your instrument plugins and from requires-python
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: User Interfaces",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
