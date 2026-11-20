@@ -1,11 +1,11 @@
 title = 'Configuration file of the pymodaq_plugins_ftir package (TWINS Fourier transform spectrometer)'
 
-# --- simulation of the setup (plugins FTIRStageSim, FTIRCardSim), see hardware/twins_simulator.py ---
+# --- simulation of the setup (plugins FTIRStageSim, FTIRCardSim), see hardware/twins/simulator.py ---
 # Positions in µm, wavelengths in nm, voltages in V. Wedges of the CEMES setup: 15°, 25 mm.
 [simulation]
 
     [simulation.source]
-        preset = 'HeNe laser (632.8 nm)'  # one of the keys of twins_simulator.source_presets()
+        preset = 'HeNe laser (632.8 nm)'  # one of the keys of twins.simulator.source_presets()
         power = 1.0
 
     [simulation.twins]
