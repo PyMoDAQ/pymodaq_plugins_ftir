@@ -75,6 +75,13 @@ From a script, without any GUI::
     delay_fs = bench.optics.delay_fs(result.positions_um, wavelength_nm=632.8)
     wavelength_nm, spectrum = spectrum_from_interferogram(delay_fs, result.data['diff'])
 
+``spectrum_from_interferogram`` converts the delay with a single birefringence (calibration at one wavelength), so
+the lines are shifted away from it (about -4 % at 450 nm and +3 % at 1000 nm for alpha-BBO).
+``spectrum_from_interferogram_dispersive`` uses the Sellmeier equations instead (``delta_n(l)``), with a calibrated
+thickness axis (one calibration point with a laser): the lines are then recovered to better than 1 nm *in the
+simulation*, which uses the same equations. On the real setup the accuracy is limited by the one of the Sellmeier
+coefficients of the wedges and by the calibration.
+
 Not simulated: spectral response of the photodiodes, transmission of the optics, acceleration ramps and closed loop
 jitter of the stage, bandwidth of the amplifier.
 

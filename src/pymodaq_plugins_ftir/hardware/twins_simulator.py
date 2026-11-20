@@ -626,7 +626,32 @@ def spectrum_from_interferogram(delay_fs: np.ndarray, signal: np.ndarray,
     return wavelength_nm, spec
 
 
+def spectrum_from_interferogram_dispersive(thickness_nm: np.ndarray, signal: np.ndarray,
+                                           material: SellmeierBirefringent = ALPHA_BBO,
+                                           wavelength_nm: Optional[np.ndarray] = None,
+                                           apodization: Optional[str] = 'hann') -> Tuple[np.ndarray, np.ndarray]:
+    """Reference implementation using the Sellmeier equations: spectrum against wavelength (nm)
+
+    The interferogram is ``I(e) = integral S(l) cos(2 pi k(l) e) dl`` with ``k(l) = delta_n(l) / l`` (cycles per nm of
+    thickness difference ``e``): its Fourier transform against ``e`` is the spectrum against ``k``, that is then
+    mapped to wavelength with the Sellmeier ``delta_n(l)`` (and the Jacobian ``dk/dl``). The thickness axis
+    must be regularly sampled and calibrated (apex angle, zero delay position: one calibration point with a laser, the
+    dispersion of the birefringence then comes from the equations instead of from a polynomial calibration).
+    """
+    thickness_nm = np.asarray(thickness_nm, dtype=float)
+    signal = np.asarray(signal, dtype=float) - np.mean(signal)
+    if apodization == 'hann':
+        signal = signal * np.hanning(signal.size)
+    de = float(np.mean(np.diff(thickness_nm)))
+    spec_k = np.abs(np.fft.rfft(signal))
+    k = np.fft.rfftfreq(signal.size, d=abs(de))  # cycles / nm
+    wl = np.linspace(250., 1600., 4000) if wavelength_nm is None else np.asarray(wavelength_nm, dtype=float)
+    k_of_l = material.delta_n(wl) / wl
+    jacobian = np.abs(np.gradient(k_of_l, wl))
+    return wl, np.interp(k_of_l, k, spec_k, left=0., right=0.) * jacobian
+
+
 __all__ = ['C_NM_PER_FS', 'CHANNELS', 'CHANNEL_LABELS', 'SellmeierBirefringent', 'ALPHA_BBO', 'MATERIALS',
            'SpectralBand', 'LightSource', 'source_presets', 'DEFAULT_SOURCE', 'DetectionSettings', 'TwinsOptics',
            'VirtualClock', 'SimulatedStage', 'AcquisitionResult', 'SimulatedAcquisitionCard', 'TwinsFTIRBench', 'get_bench',
-           'reset_bench', 'spectrum_from_interferogram']
+           'reset_bench', 'spectrum_from_interferogram', 'spectrum_from_interferogram_dispersive']

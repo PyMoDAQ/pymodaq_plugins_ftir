@@ -4,7 +4,8 @@ import pytest
 
 from pymodaq_plugins_ftir.hardware.twins_simulator import (
     ALPHA_BBO, CHANNELS, DetectionSettings, LightSource, SimulatedAcquisitionCard, SimulatedStage, SpectralBand,
-    TwinsFTIRBench, TwinsOptics, VirtualClock, source_presets, spectrum_from_interferogram)
+    TwinsFTIRBench, TwinsOptics, VirtualClock, source_presets, spectrum_from_interferogram,
+    spectrum_from_interferogram_dispersive)
 
 QUIET = DetectionSettings(electronic_noise_v=0., intensity_noise=0., intensity_drift=0., offset_v=0.)
 
@@ -128,3 +129,18 @@ def test_signal_vanishes_outside_of_the_wedge():
     assert total[1] < 1e-4 and total[2] < 1e-4
     low, high = optics.delay_range_fs()
     assert low == pytest.approx(float(optics.delay_fs(-3000.))) and high > 0
+
+
+@pytest.mark.parametrize('wavelength', [450., 633., 1000.])
+def test_dispersive_analysis_corrects_the_birefringence_dispersion(wavelength):
+    optics = TwinsOptics(source=LightSource('line', [SpectralBand(wavelength, 1.)]), detection=QUIET,
+                         apex_angle_deg=15., wedge_length_um=25000.)
+    x = np.linspace(-12500, 12500, 2 ** 16)
+    signal = optics.signals(x, noise=False)['diff']
+    wl, spectrum = spectrum_from_interferogram_dispersive(optics.thickness_nm(x), signal)
+    assert wl[np.argmax(spectrum)] == pytest.approx(wavelength, abs=1.)
+    # the delay calibrated at a single wavelength (constant delta_n) shifts the lines: -4 % at 450 nm, +3 % at 1000 nm
+    wl_c, spectrum_c = spectrum_from_interferogram(optics.delay_fs(x, 632.8), signal)
+    selection = (wl_c > 300) & (wl_c < 1500)
+    shift = wl_c[selection][np.argmax(spectrum_c[selection])] - wavelength
+    assert abs(shift) > 10 if wavelength != 633. else abs(shift) < 1.
