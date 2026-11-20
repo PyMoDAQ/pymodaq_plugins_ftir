@@ -9,7 +9,8 @@ The setup (see Oriana et al., JOSA A 33, 1415 (2016) and the INSA/CEMES project 
 * The light (polarised at 45° of the optical axes) goes through a fixed birefringent block and a pair of alpha-BBO
   wedges, one of them being moved transversally by a SmarAct linear piezo stage. Moving the wedge by ``x`` changes the
   thickness of birefringent material crossed by the beam by ``e = (x - x0) * tan(apex_angle)``, ``x0`` being the
-  stage position where the thickness of the wedges compensates the one of the fixed block (zero delay).
+  stage position where the thickness of the wedges compensates the one of the fixed block (zero delay). The beam
+  crosses the moving wedge only on a stage travel equal to the wedge length: outside, the signal vanishes.
 * The ordinary and extraordinary waves are then delayed by ``tau = delta_n(lambda) * e / c`` (from ``-tau_max`` to
   ``+tau_max`` over the stage travel), i.e. they get a phase difference ``phi = 2 pi delta_n(lambda) e / lambda``.
 * A polarising beam splitter at 45° projects the two waves on two photodiodes (``Monitor +`` and ``Monitor -``)
@@ -170,9 +171,16 @@ class TwinsOptics:
     ----------
     source: LightSource
     apex_angle_deg: float
-        apex angle of the moving wedge (to be checked on the real setup)
+        apex angle of the wedges (7° on the CEMES setup)
     zero_delay_position_um: float
-        stage position where the delay between the two polarisations is zero
+        stage position where the delay between the two polarisations is zero. It depends on the fixed birefringent
+        plate (the first one inserted) and on where the stage is mounted on the setup
+    wedge_length_um: float
+        length of the moving wedge along the displacement: the beam crosses it only on this length of stage travel
+    wedge_center_um: float
+        stage position where the beam is at the middle of the moving wedge
+    beam_diameter_um: float
+        diameter of the beam: the signal vanishes progressively (over this length) when the beam leaves the wedge
     material: SellmeierBirefringent
     detection: DetectionSettings
     seed: int or None
@@ -180,11 +188,15 @@ class TwinsOptics:
     """
 
     def __init__(self, source: Optional[LightSource] = None, apex_angle_deg: float = 7.,
-                 zero_delay_position_um: float = 0., material: SellmeierBirefringent = ALPHA_BBO,
+                 zero_delay_position_um: float = 0., wedge_length_um: float = 25000., wedge_center_um: float = 0.,
+                 beam_diameter_um: float = 1000., material: SellmeierBirefringent = ALPHA_BBO,
                  detection: Optional[DetectionSettings] = None, seed: Optional[int] = None):
         self.source = source if source is not None else source_presets()[DEFAULT_SOURCE]
         self.apex_angle_deg = apex_angle_deg
         self.zero_delay_position_um = zero_delay_position_um
+        self.wedge_length_um = wedge_length_um
+        self.wedge_center_um = wedge_center_um
+        self.beam_diameter_um = beam_diameter_um
         self.material = material
         self.detection = detection if detection is not None else DetectionSettings()
         self.rng = np.random.default_rng(seed)
@@ -194,6 +206,24 @@ class TwinsOptics:
         """Difference of birefringent thickness crossed by the beam, relative to the zero delay position (nm)"""
         return (np.asarray(position_um, dtype=float) - self.zero_delay_position_um) * 1e3 * \
             np.tan(np.deg2rad(self.apex_angle_deg))
+
+    @property
+    def wedge_range_um(self) -> Tuple[float, float]:
+        """Stage positions between which the beam crosses the moving wedge"""
+        return (self.wedge_center_um - self.wedge_length_um / 2, self.wedge_center_um + self.wedge_length_um / 2)
+
+    def transmission(self, position_um) -> np.ndarray:
+        """Fraction of the beam going through the moving wedge (1 on the wedge, 0 once the beam has left it)"""
+        x = np.asarray(position_um, dtype=float)
+        low, high = self.wedge_range_um
+        edge = max(self.beam_diameter_um / 4, 1e-6)
+        return 0.5 * (np.tanh((x - low - self.beam_diameter_um / 2) / edge) -
+                      np.tanh((x - high + self.beam_diameter_um / 2) / edge))
+
+    def delay_range_fs(self, wavelength_nm: float = 632.8) -> Tuple[float, float]:
+        """Delays reachable while the beam is on the wedge"""
+        low, high = self.wedge_range_um
+        return float(self.delay_fs(low, wavelength_nm)), float(self.delay_fs(high, wavelength_nm))
 
     def delay_fs(self, position_um, wavelength_nm: float = 632.8) -> np.ndarray:
         """Phase delay between the two polarisations at a given wavelength (fs)"""
@@ -252,7 +282,7 @@ class TwinsOptics:
     def ideal_intensities(self, position_um) -> Tuple[np.ndarray, np.ndarray]:
         """Noise free intensities (V) on the two photodiodes"""
         interf = self.detection.visibility * self.interference_term(position_um)
-        p = self.source.power * self.detection.monitor_gain
+        p = self.source.power * self.detection.monitor_gain * self.transmission(position_um)
         return p / 2 * (1 + interf), p / 2 * (1 - interf)
 
     def signals(self, position_um, times_s=None, noise: bool = True) -> Dict[str, np.ndarray]:
@@ -518,6 +548,9 @@ class TwinsFTIRBench:
         optics = TwinsOptics(source=source,
                              apex_angle_deg=float(get('twins', 'apex_angle_deg', default=7.)),
                              zero_delay_position_um=float(get('twins', 'zero_delay_position_um', default=0.)),
+                             wedge_length_um=float(get('twins', 'wedge_length_um', default=25000.)),
+                             wedge_center_um=float(get('twins', 'wedge_center_um', default=0.)),
+                             beam_diameter_um=float(get('twins', 'beam_diameter_um', default=1000.)),
                              material=material, detection=detection)
         stage = SimulatedStage(min_um=float(get('stage', 'min_um', default=-20500.)),
                                max_um=float(get('stage', 'max_um', default=20500.)),

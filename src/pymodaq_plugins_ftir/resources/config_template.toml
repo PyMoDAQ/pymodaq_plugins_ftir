@@ -1,7 +1,7 @@
 title = 'Configuration file of the pymodaq_plugins_ftir package (TWINS Fourier transform spectrometer)'
 
 # --- simulation of the setup (plugins FTIRStageSim, FTIRCardSim), see hardware/twins_simulator.py ---
-# Positions in µm, wavelengths in nm, voltages in V. The values marked (check) are to be measured on the real setup.
+# Positions in µm, wavelengths in nm, voltages in V. Wedges of the CEMES setup: 7°, 25 mm.
 [simulation]
 
     [simulation.source]
@@ -10,8 +10,11 @@ title = 'Configuration file of the pymodaq_plugins_ftir package (TWINS Fourier t
 
     [simulation.twins]
         material = 'alpha-BBO'
-        apex_angle_deg = 7.0  # apex angle of the moving wedge (check)
-        zero_delay_position_um = 0.0  # stage position of the zero delay (check)
+        apex_angle_deg = 7.0  # apex angle of the wedges
+        zero_delay_position_um = 0.0  # stage position of the zero delay: depends on the fixed plate and on the mounting of the stage
+        wedge_length_um = 25000.0  # length of the moving wedge along the displacement
+        wedge_center_um = 0.0  # stage position where the beam is at the middle of the moving wedge
+        beam_diameter_um = 1000.0
 
     [simulation.stage]  # SmarAct SLC linear stage, ~41 mm of travel
         min_um = -20500.0

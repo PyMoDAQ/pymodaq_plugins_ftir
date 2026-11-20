@@ -25,7 +25,8 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
     Positions are in mm, as for ``DAQ_Move_SmarActSCUAscii`` (pymodaq_plugins_smaract) that drives the real stage, so
     that one plugin can replace the other in a Dashboard. The velocity, the travel range and the zero delay position
     come from the ``simulation`` section of the configuration of the package (``config_ftir.toml``, in µm there) and
-    can be changed in the settings. One fringe of a HeNe laser is ~ 0.043 mm of stage travel (7° wedges).
+    can be changed in the settings, as the geometry of the TWINS (``TWINS (simulation)`` group: apex angle and
+    length of the wedges, positions of the wedge centre and of the zero delay). One fringe of a HeNe laser is ~ 0.043 mm of stage travel (7° wedges).
 
     Tested with PyMoDAQ 5.3.12, Python 3.13, Linux, against the simulator only (there is no hardware behind it).
     """
@@ -47,11 +48,26 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
             {'title': 'Max (mm):', 'name': 'max', 'type': 'float', 'readonly': True,
              'value': get_config('simulation', 'stage', 'max_um', default=20500.) / 1000},
         ]},
-        {'title': 'Zero delay position (mm):', 'name': 'zero_delay', 'type': 'float',
-         'value': get_config('simulation', 'twins', 'zero_delay_position_um', default=0.) / 1000,
-         'tip': 'Stage position where the two polarisations are not delayed (simulation parameter)'},
-        {'title': 'Delay at 632.8 nm (fs):', 'name': 'delay_fs', 'type': 'float', 'value': 0., 'readonly': True,
-         'tip': 'Delay corresponding to the current position (true value, given by the simulation)'},
+        {'title': 'TWINS (simulation):', 'name': 'twins', 'type': 'group', 'children': [
+            {'title': 'Wedge apex angle (°):', 'name': 'apex_angle', 'type': 'float',
+             'value': get_config('simulation', 'twins', 'apex_angle_deg', default=7.), 'min': 0.01, 'max': 45.},
+            {'title': 'Wedge length (mm):', 'name': 'wedge_length', 'type': 'float',
+             'value': get_config('simulation', 'twins', 'wedge_length_um', default=25000.) / UM_PER_MM, 'min': 0.1,
+             'tip': 'Length of the moving wedge along the displacement: the beam crosses it on this travel only'},
+            {'title': 'Wedge centre position (mm):', 'name': 'wedge_center', 'type': 'float',
+             'value': get_config('simulation', 'twins', 'wedge_center_um', default=0.) / UM_PER_MM,
+             'tip': 'Stage position where the beam is at the middle of the moving wedge'},
+            {'title': 'Zero delay position (mm):', 'name': 'zero_delay', 'type': 'float',
+             'value': get_config('simulation', 'twins', 'zero_delay_position_um', default=0.) / UM_PER_MM,
+             'tip': 'Stage position where the two polarisations are not delayed: depends on the fixed plate and on '
+                    'the mounting of the stage on the setup'},
+            {'title': 'Fringe period at 632.8 nm (µm):', 'name': 'fringe_period', 'type': 'float', 'value': 0.,
+             'readonly': True},
+            {'title': 'Delay range at 632.8 nm (fs):', 'name': 'delay_range', 'type': 'str', 'value': '',
+             'readonly': True, 'tip': 'Delays reachable while the beam is on the moving wedge'},
+            {'title': 'Delay at 632.8 nm (fs):', 'name': 'delay_fs', 'type': 'float', 'value': 0.,
+             'readonly': True, 'tip': 'Delay of the current position (true value, given by the simulation)'},
+        ]},
     ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilons)
 
     def ini_attributes(self):
@@ -69,9 +85,23 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
         self.controller.velocity_um_s = self.settings['velocity'] * UM_PER_MM
         self.settings.child('travel', 'min').setValue(self.controller.min_um / UM_PER_MM)
         self.settings.child('travel', 'max').setValue(self.controller.max_um / UM_PER_MM)
-        self.bench.optics.zero_delay_position_um = self.settings['zero_delay'] * UM_PER_MM
+        for name in self.TWINS_ATTRIBUTES:
+            self._apply_twins(name, self.settings['twins', name])
         self._update_timeout()
         return 'Simulated TWINS delay stage ready', True
+
+    #: setting name -> (attribute of TwinsOptics, factor from the setting unit to the one of the attribute)
+    TWINS_ATTRIBUTES = {'apex_angle': ('apex_angle_deg', 1.), 'wedge_length': ('wedge_length_um', UM_PER_MM),
+                        'wedge_center': ('wedge_center_um', UM_PER_MM),
+                        'zero_delay': ('zero_delay_position_um', UM_PER_MM)}
+
+    def _apply_twins(self, name: str, value: float):
+        attribute, factor = self.TWINS_ATTRIBUTES[name]
+        optics = self.bench.optics
+        setattr(optics, attribute, value * factor)
+        self.settings.child('twins', 'fringe_period').setValue(optics.fringe_period_um(632.8))
+        low, high = optics.delay_range_fs(632.8)
+        self.settings.child('twins', 'delay_range').setValue(f'{low:.0f} to {high:.0f}')
 
     def _update_timeout(self):
         """A full travel at low speed can take longer than the default polling timeout of PyMoDAQ"""
@@ -85,7 +115,7 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
 
     def get_actuator_value(self) -> DataActuator:
         position_um = self.controller.get_position()
-        self.settings.child('delay_fs').setValue(float(self.bench.optics.delay_fs(position_um)))
+        self.settings.child('twins', 'delay_fs').setValue(float(self.bench.optics.delay_fs(position_um)))
         pos = DataActuator(data=position_um / UM_PER_MM, units=self.axis_unit)
         return self.get_position_with_scaling(pos)
 
@@ -117,8 +147,8 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
         if param.name() == 'velocity':
             self.controller.velocity_um_s = param.value() * UM_PER_MM
             self._update_timeout()
-        elif param.name() == 'zero_delay':
-            self.bench.optics.zero_delay_position_um = param.value() * UM_PER_MM
+        elif param.name() in self.TWINS_ATTRIBUTES:
+            self._apply_twins(param.name(), param.value())
 
 
 if __name__ == '__main__':

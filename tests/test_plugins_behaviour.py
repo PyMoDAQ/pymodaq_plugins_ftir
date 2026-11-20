@@ -79,7 +79,21 @@ class TestStage:
     def test_delay_is_displayed(self, stage, bench):
         move_abs_and_wait(stage, 1.)
         stage.get_actuator_value()
-        assert stage.settings['delay_fs'] == pytest.approx(float(bench.optics.delay_fs(1000.)), rel=1e-3)
+        assert stage.settings['twins', 'delay_fs'] == pytest.approx(float(bench.optics.delay_fs(1000.)), rel=1e-3)
+
+
+    def test_twins_geometry_settings(self, stage, bench):
+        set_setting(stage, 'twins', 'apex_angle', 10.)
+        set_setting(stage, 'twins', 'wedge_length', 20.)
+        set_setting(stage, 'twins', 'wedge_center', 1.)
+        set_setting(stage, 'twins', 'zero_delay', -2.)
+        optics = bench.optics
+        assert optics.apex_angle_deg == 10.
+        assert optics.wedge_range_um == (-9000., 11000.)
+        assert optics.zero_delay_position_um == -2000.
+        assert stage.settings['twins', 'fringe_period'] == pytest.approx(optics.fringe_period_um(632.8))
+        low, high = optics.delay_range_fs(632.8)
+        assert stage.settings['twins', 'delay_range'] == f'{low:.0f} to {high:.0f}'
 
 
 class TestCard:

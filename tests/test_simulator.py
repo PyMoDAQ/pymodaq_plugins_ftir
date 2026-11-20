@@ -117,3 +117,14 @@ def test_bench_from_config():
     assert bench.optics.apex_angle_deg == 10.
     assert bench.stage.velocity_um_s == 5.
     assert bench.optics.source.bands[0].center_nm == 530.
+
+
+def test_signal_vanishes_outside_of_the_wedge():
+    optics = TwinsOptics(detection=QUIET, wedge_length_um=10000., wedge_center_um=2000., beam_diameter_um=1000.)
+    assert optics.wedge_range_um == (-3000., 7000.)
+    plus, minus = optics.ideal_intensities(np.array([2000., -4000., 8000.]))
+    total = plus + minus
+    assert total[0] == pytest.approx(optics.source.power * QUIET.monitor_gain, rel=1e-6)
+    assert total[1] < 1e-4 and total[2] < 1e-4
+    low, high = optics.delay_range_fs()
+    assert low == pytest.approx(float(optics.delay_fs(-3000.))) and high > 0

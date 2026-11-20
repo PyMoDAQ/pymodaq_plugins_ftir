@@ -54,8 +54,10 @@ script or a notebook:
   positions taken by the stage meanwhile, digitised on 16 bits;
 * ``get_bench()``: the bench shared by the plugins of a process, so that the card sees the stage of the actuator
   plugin. The default values come from the ``simulation`` section of the configuration file of the package
-  (``config_ftir.toml`` in the PyMoDAQ user configuration folder). The apex angle (7°) and the zero delay position
-  must be checked against the real setup.
+  (``config_ftir.toml`` in the PyMoDAQ user configuration folder). The geometry of the TWINS (apex angle of the
+  wedges, 7°, and their length, 25 mm, as on the CEMES setup; position of the wedge centre; zero delay position, which
+  depends on the fixed plate and on the mounting of the stage) can also be changed in the settings of the stage
+  plugin. The beam crosses the moving wedge on 25 mm of stage travel only: the signal vanishes outside.
 
 A continuous scan as the extension will do it: in a Dashboard with ``FTIRStageSim`` and ``FTIRCardSim`` (1D),
 move the stage to the start position, start a move to the end position and grab the card while it moves (with the
@@ -69,7 +71,7 @@ From a script, without any GUI::
 
     bench = TwinsFTIRBench(TwinsOptics(), SimulatedStage(clock=VirtualClock()))  # virtual clock: no waiting
     bench.set_source('Sodium doublet (589.0/589.6 nm)')
-    result = bench.scan(start_um=-15000, stop_um=15000, rate_hz=5000)
+    result = bench.scan(start_um=-12000, stop_um=12000, rate_hz=5000)
     delay_fs = bench.optics.delay_fs(result.positions_um, wavelength_nm=632.8)
     wavelength_nm, spectrum = spectrum_from_interferogram(delay_fs, result.data['diff'])
 
