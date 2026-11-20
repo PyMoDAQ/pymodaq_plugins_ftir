@@ -8,10 +8,9 @@ from pymodaq.control_modules.daq_move_ui.utils import UiType
 from pymodaq_utils.utils import ThreadCommand
 from pymodaq_gui.parameter import Parameter
 
-from pymodaq_plugins_ftir.utils import get_config
+from pymodaq_data import Q_
+from pymodaq_plugins_ftir.utils import get_config, config_quantity, q_from_param
 from pymodaq_plugins_ftir.hardware.twins_simulator import SimulatedStage, TwinsFTIRBench, get_bench
-
-UM_PER_MM = 1000.  # the simulated stage works in µm, the plugin in mm (its axis unit)
 
 
 class DAQ_Move_FTIRStageSim(DAQ_Move_base):
@@ -40,33 +39,35 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
     has_encoder = True
 
     params = [
-        {'title': 'Velocity (mm/s):', 'name': 'velocity', 'type': 'float',
-         'value': get_config('simulation', 'stage', 'velocity_um_s', default=1000.) / 1000, 'min': 0.0001,
-         'max': 50.},
+        {'title': 'Velocity:', 'name': 'velocity', 'type': 'float', 'suffix': 'mm/s', 'siPrefix': False,
+         'value': config_quantity('simulation', 'stage', 'velocity_um_s', stored='µm/s', unit='mm/s', default=1000.).magnitude,
+         'min': 0.0001, 'max': 50.},
         {'title': 'Travel range:', 'name': 'travel', 'type': 'group', 'children': [
-            {'title': 'Min (mm):', 'name': 'min', 'type': 'float', 'readonly': True,
-             'value': get_config('simulation', 'stage', 'min_um', default=-20500.) / 1000},
-            {'title': 'Max (mm):', 'name': 'max', 'type': 'float', 'readonly': True,
-             'value': get_config('simulation', 'stage', 'max_um', default=20500.) / 1000},
+            {'title': 'Min:', 'name': 'min', 'type': 'float', 'suffix': 'mm', 'readonly': True,
+             'value': config_quantity('simulation', 'stage', 'min_um', unit='mm', default=-20500.).magnitude},
+            {'title': 'Max:', 'name': 'max', 'type': 'float', 'suffix': 'mm', 'readonly': True,
+             'value': config_quantity('simulation', 'stage', 'max_um', unit='mm', default=20500.).magnitude},
         ]},
         {'title': 'TWINS (simulation):', 'name': 'twins', 'type': 'group', 'children': [
-            {'title': 'Wedge apex angle (°):', 'name': 'apex_angle', 'type': 'float',
+            {'title': 'Wedge apex angle:', 'name': 'apex_angle', 'type': 'float', 'suffix': '°',
              'value': get_config('simulation', 'twins', 'apex_angle_deg', default=15.), 'min': 0.01, 'max': 45.},
-            {'title': 'Wedge length (mm):', 'name': 'wedge_length', 'type': 'float',
-             'value': get_config('simulation', 'twins', 'wedge_length_um', default=25000.) / UM_PER_MM, 'min': 0.1,
+            {'title': 'Wedge length:', 'name': 'wedge_length', 'type': 'float', 'suffix': 'mm',
+             'value': config_quantity('simulation', 'twins', 'wedge_length_um', unit='mm', default=25000.).magnitude,
+             'min': 0.1,
              'tip': 'Length of the moving wedge along the displacement: the beam crosses it on this travel only'},
-            {'title': 'Wedge centre position (mm):', 'name': 'wedge_center', 'type': 'float',
-             'value': get_config('simulation', 'twins', 'wedge_center_um', default=0.) / UM_PER_MM,
+            {'title': 'Wedge centre position:', 'name': 'wedge_center', 'type': 'float', 'suffix': 'mm',
+             'value': config_quantity('simulation', 'twins', 'wedge_center_um', unit='mm', default=0.).magnitude,
              'tip': 'Stage position where the beam is at the middle of the moving wedge'},
-            {'title': 'Zero delay position (mm):', 'name': 'zero_delay', 'type': 'float',
-             'value': get_config('simulation', 'twins', 'zero_delay_position_um', default=0.) / UM_PER_MM,
+            {'title': 'Zero delay position:', 'name': 'zero_delay', 'type': 'float', 'suffix': 'mm',
+             'value': config_quantity('simulation', 'twins', 'zero_delay_position_um', unit='mm',
+                                      default=0.).magnitude,
              'tip': 'Stage position where the two polarisations are not delayed: depends on the fixed plate and on '
                     'the mounting of the stage on the setup'},
-            {'title': 'Fringe period at 632.8 nm (µm):', 'name': 'fringe_period', 'type': 'float', 'value': 0.,
-             'readonly': True},
+            {'title': 'Fringe period at 632.8 nm:', 'name': 'fringe_period', 'type': 'float', 'suffix': 'µm',
+             'value': 0., 'readonly': True},
             {'title': 'Delay range at 632.8 nm (fs):', 'name': 'delay_range', 'type': 'str', 'value': '',
              'readonly': True, 'tip': 'Delays reachable while the beam is on the moving wedge'},
-            {'title': 'Delay at 632.8 nm (fs):', 'name': 'delay_fs', 'type': 'float', 'value': 0.,
+            {'title': 'Delay at 632.8 nm:', 'name': 'delay_fs', 'type': 'float', 'suffix': 'fs', 'value': 0.,
              'readonly': True, 'tip': 'Delay of the current position (true value, given by the simulation)'},
         ]},
     ] + comon_parameters_fun(is_multiaxes, axis_names=_axis_names, epsilon=_epsilons)
@@ -83,23 +84,23 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
         else:
             self.controller = controller
             self.bench = get_bench()
-        self.controller.velocity_um_s = self.settings['velocity'] * UM_PER_MM
-        self.settings.child('travel', 'min').setValue(self.controller.min_um / UM_PER_MM)
-        self.settings.child('travel', 'max').setValue(self.controller.max_um / UM_PER_MM)
+        self.controller.velocity_um_s = q_from_param(self.settings.child('velocity')).to('µm/s').magnitude
+        self.settings.child('travel', 'min').setValue(Q_(self.controller.min_um, 'µm').to('mm').magnitude)
+        self.settings.child('travel', 'max').setValue(Q_(self.controller.max_um, 'µm').to('mm').magnitude)
         for name in self.TWINS_ATTRIBUTES:
-            self._apply_twins(name, self.settings['twins', name])
+            self._apply_twins(name, self.settings.child('twins', name))
         self._update_timeout()
         return 'Simulated TWINS delay stage ready', True
 
-    #: setting name -> (attribute of TwinsOptics, factor from the setting unit to the one of the attribute)
-    TWINS_ATTRIBUTES = {'apex_angle': ('apex_angle_deg', 1.), 'wedge_length': ('wedge_length_um', UM_PER_MM),
-                        'wedge_center': ('wedge_center_um', UM_PER_MM),
-                        'zero_delay': ('zero_delay_position_um', UM_PER_MM)}
+    #: setting name -> (attribute of TwinsOptics, unit of that attribute)
+    TWINS_ATTRIBUTES = {'apex_angle': ('apex_angle_deg', '°'), 'wedge_length': ('wedge_length_um', 'µm'),
+                        'wedge_center': ('wedge_center_um', 'µm'),
+                        'zero_delay': ('zero_delay_position_um', 'µm')}
 
-    def _apply_twins(self, name: str, value: float):
-        attribute, factor = self.TWINS_ATTRIBUTES[name]
+    def _apply_twins(self, name: str, param: Parameter):
+        attribute, unit = self.TWINS_ATTRIBUTES[name]
         optics = self.bench.optics
-        setattr(optics, attribute, value * factor)
+        setattr(optics, attribute, q_from_param(param).to(unit).magnitude)
         self.settings.child('twins', 'fringe_period').setValue(optics.fringe_period_um(632.8))
         low, high = optics.delay_range_fs(632.8)
         self.settings.child('twins', 'delay_range').setValue(f'{low:.0f} to {high:.0f}')
@@ -117,20 +118,20 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
     def get_actuator_value(self) -> DataActuator:
         position_um = self.controller.get_position()
         self.settings.child('twins', 'delay_fs').setValue(float(self.bench.optics.delay_fs(position_um)))
-        pos = DataActuator(data=position_um / UM_PER_MM, units=self.axis_unit)
+        pos = DataActuator(data=Q_(position_um, 'µm').to(self.axis_unit).magnitude, units=self.axis_unit)
         return self.get_position_with_scaling(pos)
 
     def move_abs(self, value: DataActuator):
         value = self.check_bound(value)
         self.target_value = value
         value = self.set_position_with_scaling(value)
-        self.controller.move_abs(value.value(self.axis_unit) * UM_PER_MM)
+        self.controller.move_abs(Q_(value.value(self.axis_unit), self.axis_unit).to('µm').magnitude)
 
     def move_rel(self, value: DataActuator):
         value = self.check_bound(self.current_value + value) - self.current_value
         self.target_value = value + self.current_value
         value = self.set_position_relative_with_scaling(value)
-        self.controller.move_rel(value.value(self.axis_unit) * UM_PER_MM)
+        self.controller.move_rel(Q_(value.value(self.axis_unit), self.axis_unit).to('µm').magnitude)
 
     def move_home(self):
         """Go to the reference mark. Blocking (as the referencing of the real stage), then calls move_done"""
@@ -146,10 +147,10 @@ class DAQ_Move_FTIRStageSim(DAQ_Move_base):
 
     def commit_settings(self, param: Parameter):
         if param.name() == 'velocity':
-            self.controller.velocity_um_s = param.value() * UM_PER_MM
+            self.controller.velocity_um_s = q_from_param(param).to('µm/s').magnitude
             self._update_timeout()
         elif param.name() in self.TWINS_ATTRIBUTES:
-            self._apply_twins(param.name(), param.value())
+            self._apply_twins(param.name(), param)
 
 
 if __name__ == '__main__':

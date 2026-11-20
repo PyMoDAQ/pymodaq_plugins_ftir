@@ -36,12 +36,12 @@ class DAQ_1DViewer_FTIRCardSim(DAQ_Viewer_base):
     Tested with PyMoDAQ 5.3.12, Python 3.13, Linux, against the simulator only (there is no hardware behind it).
     """
     params = comon_parameters + [
-        {'title': 'Sampling rate (Hz):', 'name': 'rate', 'type': 'float',
+        {'title': 'Sampling rate:', 'name': 'rate', 'type': 'float', 'suffix': 'Hz',
          'value': get_config('simulation', 'card', 'rate_hz', default=2000.), 'min': 1.,
          'max': SimulatedAcquisitionCard.max_rate_hz},
         {'title': 'Nsamples:', 'name': 'n_samples', 'type': 'int',
          'value': get_config('simulation', 'card', 'n_samples', default=2000), 'min': 1, 'max': 10_000_000},
-        {'title': 'Duration (s):', 'name': 'duration', 'type': 'float', 'value': 1., 'readonly': True},
+        {'title': 'Duration:', 'name': 'duration', 'type': 'float', 'suffix': 's', 'value': 1., 'readonly': True},
         {'title': 'Input range (±V):', 'name': 'input_range', 'type': 'list',
          'limits': list(SimulatedAcquisitionCard.ranges_v),
          'value': get_config('simulation', 'card', 'input_range_v', default=10.)},
@@ -56,7 +56,7 @@ class DAQ_1DViewer_FTIRCardSim(DAQ_Viewer_base):
              'value': get_config('simulation', 'source', 'power', default=1.), 'min': 0.},
             {'title': 'Fringe visibility:', 'name': 'visibility', 'type': 'float',
              'value': get_config('simulation', 'detection', 'visibility', default=0.9), 'min': 0., 'max': 1.},
-            {'title': 'Electronic noise (V rms):', 'name': 'electronic_noise_v', 'type': 'float',
+            {'title': 'Electronic noise (rms):', 'name': 'electronic_noise_v', 'type': 'float', 'suffix': 'V',
              'value': get_config('simulation', 'detection', 'electronic_noise_v', default=0.002), 'min': 0.},
             {'title': 'Intensity noise (rel. rms):', 'name': 'intensity_noise', 'type': 'float',
              'value': get_config('simulation', 'detection', 'intensity_noise', default=0.01), 'min': 0.},

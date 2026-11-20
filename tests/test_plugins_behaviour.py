@@ -6,6 +6,7 @@ from pymodaq.utils.data import DataActuator
 from pymodaq.utils.plugin_testing import (make_actuator, make_detector, move_abs_and_wait, move_rel_and_wait,
                                           move_home_and_wait, grab_and_wait, assert_units)
 
+from pymodaq_plugins_ftir.utils import q_from_param
 from pymodaq_plugins_ftir.hardware.twins_simulator import SimulatedStage, TwinsFTIRBench, TwinsOptics, reset_bench
 from pymodaq_plugins_ftir.daq_move_plugins.daq_move_FTIRStageSim import DAQ_Move_FTIRStageSim
 from pymodaq_plugins_ftir.daq_viewer_plugins.plugins_1D.daq_1Dviewer_FTIRCardSim import DAQ_1DViewer_FTIRCardSim
@@ -75,6 +76,14 @@ class TestStage:
         stage.stop_motion()
         assert not bench.stage.is_moving()
         assert abs(bench.stage.get_position()) < 1000.
+
+    def test_settings_units_are_the_suffixes(self, stage, bench):
+        """The settings are in mm, mm/s and degrees (their suffix), the simulator works in µm"""
+        set_setting(stage, 'velocity', 2.)
+        assert bench.stage.velocity_um_s == pytest.approx(2000.)
+        set_setting(stage, 'twins', 'wedge_center', 0.5)
+        assert bench.optics.wedge_center_um == pytest.approx(500.)
+        assert q_from_param(stage.settings.child('twins', 'wedge_center')).to('µm').magnitude == pytest.approx(500.)
 
     def test_delay_is_displayed(self, stage, bench):
         move_abs_and_wait(stage, 1.)
