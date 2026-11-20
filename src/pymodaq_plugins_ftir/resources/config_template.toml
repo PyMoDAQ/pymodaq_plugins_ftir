@@ -1,21 +1,36 @@
-#this is the configuration file of PyMoDAQ
+title = 'Configuration file of the pymodaq_plugins_ftir package (TWINS Fourier transform spectrometer)'
 
-[diodes]
-    device_ai = 'cDAQ1Mod1'
-    ai_monitor_plus = 'ai1'
-    ai_monitor_minus = 'ai2'
-    ai_diff = 'ai3'
-    frequency = 25000
-	Nsamples =8000
+# --- simulation of the setup (plugins FTIRStageSim, FTIRCardSim), see hardware/twins_simulator.py ---
+# Positions in µm, wavelengths in nm, voltages in V. The values marked (check) are to be measured on the real setup.
+[simulation]
 
-[delay]
-    id = 722998302
-	frequency  = 100
-	amplitude = 31
-	maxfreq = 10000
-    epsilon = 0.3
+    [simulation.source]
+        preset = 'HeNe laser (632.8 nm)'  # one of the keys of twins_simulator.source_presets()
+        power = 1.0
 
-    [delay.positions]
-        start =-13000.0
-		stop = 10000.0
-        go_to = 0.0
+    [simulation.twins]
+        material = 'alpha-BBO'
+        apex_angle_deg = 7.0  # apex angle of the moving wedge (check)
+        zero_delay_position_um = 0.0  # stage position of the zero delay (check)
+
+    [simulation.stage]  # SmarAct SLC linear stage, ~41 mm of travel
+        min_um = -20500.0
+        max_um = 20500.0
+        velocity_um_s = 1000.0
+        reference_um = 0.0  # position of the reference mark (home)
+        position_noise_um = 0.001
+
+    [simulation.card]  # MCC 128 like acquisition card
+        input_range_v = 10.0  # 10, 5, 2 or 1 (± V)
+        rate_hz = 2000.0
+        n_samples = 2000
+
+    [simulation.detection]
+        monitor_gain = 2.0
+        diff_gain = 4.0
+        visibility = 0.9
+        offset_v = 0.01
+        electronic_noise_v = 0.002
+        intensity_noise = 0.01
+        intensity_drift = 0.05
+        drift_period_s = 7.3
